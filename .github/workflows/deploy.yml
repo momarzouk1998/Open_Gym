@@ -18,22 +18,31 @@ jobs:
     timeout-minutes: 15
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - name: Debug key shape (safe — only headers/fingerprint)
+      - name: Debug key shape (safe — only fingerprint via real ssh-keygen)
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          echo "Length: $(printf '%s' "$SSH_KEY" | wc -c) bytes"
-          echo "Line count: $(printf '%s' "$SSH_KEY" | wc -l)"
-          echo "Has CRLF (\\r): $(printf '%s' "$SSH_KEY" | od -c | grep -c '\\r')"
-          echo "Has trailing newline: $([ -z "$(printf '%s' "$SSH_KEY" | tail -c1)" ] && echo YES || echo NO)"
-          echo "First line: $(printf '%s' "$SSH_KEY" | head -1)"
-          echo "Last line:  $(printf '%s' "$SSH_KEY" | tail -1)"
-          # Try normalizing CRLF->LF then test
-          NORM="$(printf '%s' "$SSH_KEY" | tr -d '\r')"
-          echo "After CRLF strip — Length: $(printf '%s' "$NORM" | wc -c) bytes"
-          echo "Normalized fingerprint: $(printf '%s' "$NORM" | ssh-keygen -lf - 2>/dev/null || echo 'STILL INVALID')"
-          echo "User secret: ${{ secrets.SSH_USER }}"
-          echo "Host secret: ${{ secrets.SSH_HOST }}"
+          # Write to file and test with ssh-keygen (the only reliable way for private keys)
+          printf '%s\n' "$SSH_KEY" > /tmp/key
+          chmod 600 /tmp/key
+          echo "Length (with newline): $(wc -c < /tmp/key) bytes"
+          echo "Lines: $(wc -l < /tmp/key)"
+          echo "Fingerprint: $(ssh-keygen -lf /tmp/key 2>&1)"
+          echo "Corresponding public key:"
+          ssh-keygen -yf /tmp/key 2>&1 | head -c 60
+          echo "..."
+
+      - name: Test SSH connection (real test, not appleboy)
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          printf '%s\n' "$SSH_KEY" > /tmp/key
+          chmod 600 /tmp/key
+          mkdir -p ~/.ssh && ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          echo "=== Trying real ssh ==="
+          ssh -i /tmp/key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami; hostname"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
