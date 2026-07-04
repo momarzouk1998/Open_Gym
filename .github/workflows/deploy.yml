@@ -1,0 +1,70 @@
+# ========================================
+# Deploy OpenGym — SSH-First (mirrors mazaya)
+# Strategy: Build happens in GitHub CI (off-server)
+# Server only pulls the finished image and restarts.
+# ========================================
+name: Deploy to Server
+
+on:
+  workflow_run:
+    workflows: ["Build & Push to GHCR"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy via SSH
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SH_PRIVATE_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+
+            GHCR_IMAGE="ghcr.io/momarzouk1998/open_gym:latest"
+            LOCAL_TAG="opengym:latest"
+
+            echo "=== [1/6] Pulling image from GHCR ==="
+            docker pull $GHCR_IMAGE
+
+            echo "=== [2/6] Tagging local image ==="
+            docker tag $GHCR_IMAGE $LOCAL_TAG
+
+            echo "=== [3/6] Stopping old container ==="
+            docker stop opengym 2>/dev/null || true
+            docker rm opengym 2>/dev/null || true
+
+            echo "=== [4/6] Starting new container ==="
+            docker run -d \
+              --name opengym \
+              --restart unless-stopped \
+              --network host \
+              --env-file /opt/openappo-gym/.env \
+              $LOCAL_TAG
+
+            echo "=== [5/6] Waiting 15s for startup ==="
+            sleep 15
+
+            echo "=== Container status ==="
+            docker ps --filter name=opengym
+            docker logs opengym --tail 20
+
+            echo ""
+            echo "=== Internal health check ==="
+            curl -s -o /dev/null -w "HTTP: %{http_code} | Time: %{time_total}s\n" http://127.0.0.1:3000/ || echo "Internal check failed"
+
+            echo "=== External health check ==="
+            curl -s -o /dev/null -w "HTTP: %{http_code} | Time: %{time_total}s\n" https://opengym.openappo.com/ || echo "External check failed"
+
+            echo "=== [6/6] Cleaning up old images ==="
+            docker image prune -f
+
+            echo ""
+            echo "=== Deployment complete ==="

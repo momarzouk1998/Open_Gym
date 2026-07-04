@@ -10,3 +10,9 @@ npm-debug.log*
 Dockerfile
 .dockerignore
 docker-compose.yml
+.github
+docs
+audit
+.kiro
+logo
+openappo_gym
