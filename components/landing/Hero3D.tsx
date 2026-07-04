@@ -133,7 +133,6 @@ export function Hero3D() {
           
           <PresentationControls
             global
-            config={{ mass: 2, tension: 500 }}
             snap={true}
             rotation={[0, 0, 0]}
             polar={[-Math.PI / 6, Math.PI / 6]}
