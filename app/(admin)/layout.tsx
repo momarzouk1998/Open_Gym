@@ -8,7 +8,6 @@ import {
   Building2,
   Receipt,
   LogOut,
-  Dumbbell,
   Menu,
   X,
   Settings2,
@@ -18,6 +17,7 @@ import {
   UserCircle,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { Logo } from '@/components/Logo'
 import { useTheme } from 'next-themes'
 import { NotificationBell } from '@/components/dashboard/NotificationBell'
 
@@ -77,16 +77,9 @@ export default function AdminLayout({
           }`}
         >
           <div className="p-5 border-b border-app">
-            <Link href="/admin" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#22C55E] to-[#16A34A] flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <div className="font-cairo font-bold text-lg">
-                  Open<span className="text-[#22C55E]">Gym</span>
-                </div>
-                <div className="text-xs text-[#22C55E]">لوحة الأدمن</div>
-              </div>
+            <Link href="/admin" className="flex flex-col gap-2">
+              <Logo variant="full" width={120} height={38} priority />
+              <div className="text-xs text-[#22C55E] mt-1 pr-2">لوحة الأدمن</div>
             </Link>
             <button
               onClick={() => setOpen(false)}

@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { Menu, X, Dumbbell, Sun, Moon } from 'lucide-react'
+import { Menu, X, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
+import { Logo } from '@/components/Logo'
 
 const navLinks = [
   { href: '#features', label: 'المميزات' },
@@ -55,15 +56,7 @@ export function Navbar() {
         {/* Logo */}
         <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Link href="/" className="flex items-center gap-2 group">
-            <motion.div
-              whileHover={{ rotate: -15 }}
-              className="w-9 h-9 rounded-xl bg-[#22C55E] flex items-center justify-center"
-            >
-              <Dumbbell className="w-5 h-5 text-white" />
-            </motion.div>
-            <span className="font-cairo font-bold text-xl text-strong">
-              Open<span className="text-[#22C55E]">Gym</span>
-            </span>
+            <Logo variant="full" width={140} height={44} priority />
           </Link>
         </motion.div>
 

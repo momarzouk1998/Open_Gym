@@ -23,6 +23,7 @@ import {
   Crown,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
+import { Logo } from '@/components/Logo'
 
 interface SidebarProps {
   isOpen: boolean
@@ -112,12 +113,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="p-5 border-b border-app">
           <div className="flex items-center justify-between mb-4">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-[#22C55E] flex items-center justify-center">
-                <Dumbbell className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-cairo font-bold text-lg">
-                Open<span className="text-[#22C55E]">Gym</span>
-              </span>
+              <Logo variant="full" width={120} height={38} priority />
             </Link>
             <button
               onClick={onClose}

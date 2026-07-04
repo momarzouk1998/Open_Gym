@@ -39,12 +39,14 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-          # 4. Test connection first (verbose, 10s timeout)
+          # 4. Test connection first (verbose)
           echo ""
+          echo "=== Target SSH Host ==="
+          echo "$SSH_HOST" | sed 's/./& /g'
           echo "=== Testing SSH connection ==="
           ssh -v -i /tmp/deploy_key -o ConnectTimeout=10 \
               -o StrictHostKeyChecking=accept-new \
-              "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami" 2>&1 | tail -20
+              "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami" 2>&1
 
           # 5. Deploy
           echo ""

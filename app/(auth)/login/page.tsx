@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
-import { Dumbbell, Mail, Lock, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Mail, Lock, ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -57,12 +58,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <Link href="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#22C55E] flex items-center justify-center">
-            <Dumbbell className="w-6 h-6 text-white" />
-          </div>
-          <span className="font-cairo font-bold text-2xl">
-            Open<span className="text-[#22C55E]">Gym</span>
-          </span>
+          <Logo variant="full" width={180} height={56} priority />
         </Link>
 
         <div className="glass-card p-8 rounded-2xl">

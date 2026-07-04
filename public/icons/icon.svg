@@ -4,15 +4,24 @@
       <stop offset="0" stop-color="#0A0A0F"/>
       <stop offset="1" stop-color="#111118"/>
     </linearGradient>
-    <linearGradient id="dumbbell" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="bar" x1="0" y1="1" x2="0" y2="0">
       <stop offset="0" stop-color="#22C55E"/>
-      <stop offset="1" stop-color="#16A34A"/>
+      <stop offset="1" stop-color="#4ADE80"/>
+    </linearGradient>
+    <linearGradient id="arc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E293B"/>
+      <stop offset="1" stop-color="#334155"/>
     </linearGradient>
   </defs>
+  <!-- Background -->
   <rect width="512" height="512" fill="url(#bg)"/>
-  <g transform="translate(256 256) rotate(45)">
-    <rect x="-18" y="-110" width="36" height="220" rx="18" fill="#E2E8F0"/>
-    <rect x="-70" y="-150" width="140" height="56" rx="14" fill="url(#dumbbell)"/>
-    <rect x="-70" y="94" width="140" height="56" rx="14" fill="url(#dumbbell)"/>
-  </g>
+  <!-- G arc -->
+  <path d="M280 120 A155 155 0 1 0 280 390" fill="none" stroke="url(#arc)" stroke-width="48" stroke-linecap="round"/>
+  <!-- Arrow -->
+  <path d="M260 230 L340 160" fill="none" stroke="url(#bar)" stroke-width="28" stroke-linecap="round"/>
+  <polygon points="360,130 370,180 320,170" fill="url(#bar)"/>
+  <!-- Bar chart -->
+  <rect x="195" y="300" width="40" height="100" rx="8" fill="url(#bar)"/>
+  <rect x="250" y="260" width="40" height="140" rx="8" fill="url(#bar)"/>
+  <rect x="305" y="220" width="40" height="180" rx="8" fill="url(#bar)"/>
 </svg>

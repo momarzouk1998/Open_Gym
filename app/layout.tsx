@@ -59,10 +59,10 @@ export const metadata: Metadata = {
     description: 'منصة متكاملة لإدارة الجيمات في مصر',
     images: [
       {
-        url: '/icons/icon-512.png',
-        width: 512,
-        height: 512,
-        alt: 'OpenGym',
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'OpenGym — نظام متكامل لإدارة الجيمات',
       },
     ],
   },
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'OpenGym — إدارة الجيمات بذكاء',
     description: 'منصة متكاملة لإدارة الجيمات في مصر',
-    images: ['/icons/icon-512.png'],
+    images: ['/og-image.png'],
   },
   icons: {
     icon: [
