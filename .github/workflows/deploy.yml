@@ -23,7 +23,7 @@ jobs:
           SSH_KEY: ${{ secrets.SH_PRIVATE_KEY }}
         run: |
           mkdir -p $HOME/.ssh
-          echo "$SSH_KEY" > $HOME/.ssh/deploy_key
+          printf '%s' "$SSH_KEY" > $HOME/.ssh/deploy_key
           chmod 600 $HOME/.ssh/deploy_key
           echo "--- HOME=$HOME"
           echo "--- key length: $(wc -c < $HOME/.ssh/deploy_key) bytes"
@@ -31,6 +31,7 @@ jobs:
           echo "--- key tail: $(tail -1 $HOME/.ssh/deploy_key)"
           echo "--- file exists: $(test -f $HOME/.ssh/deploy_key && echo YES || echo NO)"
           ls -la $HOME/.ssh/
+          echo "--- key permissions: $(stat -c '%a' $HOME/.ssh/deploy_key)"
 
       - name: Test SSH connection directly
         env:
@@ -38,16 +39,18 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
           echo "--- HOME=$HOME"
-          echo "--- Trying ssh with $HOME/.ssh/deploy_key ---"
-          ssh -v -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=10 $SSH_USER@$SSH_HOST "echo 'CONNECTED OK' && whoami" 2>&1 | tail -40
-          echo "--- exit code: $? ---"
+          echo "--- Testing direct ssh with $HOME/.ssh/deploy_key ---"
+          ssh -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no $SSH_USER@$SSH_HOST "echo 'CONNECTED OK' && whoami" 2>&1 | tail -20
+          echo "--- direct ssh exit code: $? ---"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
+        env:
+          HOME: $HOME
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SH_PRIVATE_KEY }}
+          key_path: ${{ env.HOME }}/.ssh/deploy_key
           command_timeout: 10m
           script: |
             set -e
