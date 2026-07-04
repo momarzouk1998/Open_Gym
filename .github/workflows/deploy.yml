@@ -18,36 +18,23 @@ jobs:
     timeout-minutes: 15
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - name: Debug secrets (masked)
+      - name: Decode SSH key to file
+        env:
+          SSH_KEY: ${{ secrets.SH_PRIVATE_KEY }}
         run: |
-          echo "SSH_HOST: ${{ secrets.SSH_HOST }}"
-          echo "SSH_USER: ${{ secrets.SSH_USER }}"
-          echo "SH_PRIVATE_KEY length: ${{ secrets.SH_PRIVATE_KEY }} chars (count placeholder)"
-          SH_KEY="${{ secrets.SH_PRIVATE_KEY }}"
-          echo "SH_PRIVATE_KEY first line: $(echo "$SH_KEY" | head -1)"
-          echo "SH_PRIVATE_KEY last line:  $(echo "$SH_KEY" | tail -1)"
-          echo "SH_PRIVATE_KEY line count: $(echo "$SH_KEY" | wc -l)"
-
-      - name: Validate private key locally
-        run: |
-          SH_KEY="${{ secrets.SH_PRIVATE_KEY }}"
-          echo "$SH_KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          echo "--- Key file head ---"
-          head -1 /tmp/deploy_key
-          echo "--- Key file tail ---"
-          tail -1 /tmp/deploy_key
-          echo "--- ssh-keygen -l (fingerprint) ---"
-          ssh-keygen -l -f /tmp/deploy_key || echo "INVALID KEY FORMAT"
-          echo "--- key type ---"
-          head -1 /tmp/deploy_key
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "--- key length: $(wc -c < ~/.ssh/deploy_key) bytes"
+          echo "--- key head: $(head -1 ~/.ssh/deploy_key)"
+          echo "--- key tail: $(tail -1 ~/.ssh/deploy_key)"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SH_PRIVATE_KEY }}
+          key_path: ~/.ssh/deploy_key
           command_timeout: 10m
           script: |
             set -e
