@@ -22,22 +22,24 @@ jobs:
         env:
           SSH_KEY: ${{ secrets.SH_PRIVATE_KEY }}
         run: |
-          mkdir -p /root/.ssh
-          echo "$SSH_KEY" > /root/.ssh/deploy_key
-          chmod 600 /root/.ssh/deploy_key
-          echo "--- key length: $(wc -c < /root/.ssh/deploy_key) bytes"
-          echo "--- key head: $(head -1 /root/.ssh/deploy_key)"
-          echo "--- key tail: $(tail -1 /root/.ssh/deploy_key)"
-          echo "--- file exists: $(test -f /root/.ssh/deploy_key && echo YES || echo NO)"
-          ls -la /root/.ssh/
+          mkdir -p $HOME/.ssh
+          echo "$SSH_KEY" > $HOME/.ssh/deploy_key
+          chmod 600 $HOME/.ssh/deploy_key
+          echo "--- HOME=$HOME"
+          echo "--- key length: $(wc -c < $HOME/.ssh/deploy_key) bytes"
+          echo "--- key head: $(head -1 $HOME/.ssh/deploy_key)"
+          echo "--- key tail: $(tail -1 $HOME/.ssh/deploy_key)"
+          echo "--- file exists: $(test -f $HOME/.ssh/deploy_key && echo YES || echo NO)"
+          ls -la $HOME/.ssh/
 
       - name: Test SSH connection directly
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
         run: |
-          echo "--- Trying ssh with /root/.ssh/deploy_key ---"
-          ssh -v -i /root/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=10 $SSH_USER@$SSH_HOST "echo 'CONNECTED OK' && whoami" 2>&1 | tail -40
+          echo "--- HOME=$HOME"
+          echo "--- Trying ssh with $HOME/.ssh/deploy_key ---"
+          ssh -v -i $HOME/.ssh/deploy_key -o BatchMode=yes -o ConnectTimeout=10 $SSH_USER@$SSH_HOST "echo 'CONNECTED OK' && whoami" 2>&1 | tail -40
           echo "--- exit code: $? ---"
 
       - name: Deploy via SSH
@@ -45,7 +47,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key_path: /root/.ssh/deploy_key
+          key: ${{ secrets.SH_PRIVATE_KEY }}
           command_timeout: 10m
           script: |
             set -e
