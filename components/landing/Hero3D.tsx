@@ -1,112 +1,104 @@
 'use client'
 
-import { useRef, useEffect, useState, Suspense, useMemo } from 'react'
+import { useRef, useState, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, MeshDistortMaterial, MeshWobbleMaterial, Stars, PerspectiveCamera } from '@react-three/drei'
-import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing'
-import { BlendFunction } from 'postprocessing'
+import { Float, ContactShadows, Environment, PresentationControls } from '@react-three/drei'
 import * as THREE from 'three'
 
-// Abstract 3D shape that looks premium and dynamic (representing infinite possibilities/strength)
-function AbstractCore() {
-  const meshRef = useRef<THREE.Mesh>(null)
-  
+// 3D Dumbbell
+function PremiumDumbbell() {
+  const group = useRef<THREE.Group>(null)
+
   useFrame((state) => {
-    if (!meshRef.current) return
+    if (!group.current) return
     const t = state.clock.getElapsedTime()
-    // Dynamic rotation
-    meshRef.current.rotation.x = t * 0.2
-    meshRef.current.rotation.y = t * 0.3
+    group.current.rotation.y = Math.sin(t / 2) * 0.3
+    group.current.rotation.z = Math.cos(t / 2) * 0.1
   })
 
-  // Exact green from logo: #22C55E
+  // Materials
+  const metalMaterial = new THREE.MeshStandardMaterial({
+    color: '#333333',
+    metalness: 0.9,
+    roughness: 0.2,
+  })
+  
+  const accentMaterial = new THREE.MeshStandardMaterial({
+    color: '#22C55E',
+    metalness: 0.5,
+    roughness: 0.2,
+    emissive: '#22C55E',
+    emissiveIntensity: 0.4
+  })
+
   return (
-    <group>
-      {/* Outer abstract shape */}
-      <mesh ref={meshRef}>
-        <torusKnotGeometry args={[1.2, 0.4, 128, 32]} />
-        <MeshDistortMaterial
-          color="#0A0A0F"
-          emissive="#22C55E"
-          emissiveIntensity={0.8}
-          distort={0.4}
-          speed={2}
-          roughness={0.2}
-          metalness={0.8}
-          wireframe={true}
-        />
+    <group ref={group} position={[-1.5, 0.5, 0]} scale={0.8} rotation={[0.4, 0.4, 0]}>
+      {/* Bar */}
+      <mesh material={metalMaterial} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.12, 0.12, 3, 32]} />
       </mesh>
       
-      {/* Inner glowing core */}
-      <Float speed={2} rotationIntensity={2} floatIntensity={2}>
-        <mesh>
-          <sphereGeometry args={[0.6, 64, 64]} />
-          <MeshWobbleMaterial
-            color="#22C55E"
-            emissive="#22C55E"
-            emissiveIntensity={1.5}
-            factor={1}
-            speed={2}
-            roughness={0}
-            metalness={1}
-          />
-        </mesh>
-      </Float>
+      {/* Weights Left */}
+      <mesh material={accentMaterial} position={[-1.2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.6, 0.6, 0.3, 32]} />
+      </mesh>
+      <mesh material={metalMaterial} position={[-0.8, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.45, 0.45, 0.25, 32]} />
+      </mesh>
+
+      {/* Weights Right */}
+      <mesh material={accentMaterial} position={[1.2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.6, 0.6, 0.3, 32]} />
+      </mesh>
+      <mesh material={metalMaterial} position={[0.8, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.45, 0.45, 0.25, 32]} />
+      </mesh>
     </group>
   )
 }
 
-function FloatingParticles() {
-  const count = 50
-  const mesh = useRef<THREE.InstancedMesh>(null)
+// 3D Chart
+function PremiumChart() {
+  const group = useRef<THREE.Group>(null)
   
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-  const particles = useMemo(() => {
-    const temp = []
-    for (let i = 0; i < count; i++) {
-      const t = Math.random() * 100
-      const factor = 20 + Math.random() * 100
-      const speed = 0.01 + Math.random() / 200
-      const xFactor = -10 + Math.random() * 20
-      const yFactor = -10 + Math.random() * 20
-      const zFactor = -10 + Math.random() * 20
-      temp.push({ t, factor, speed, xFactor, yFactor, zFactor, mx: 0, my: 0 })
-    }
-    return temp
-  }, [count])
-
   useFrame((state) => {
-    particles.forEach((particle, i) => {
-      let { t, factor, speed, xFactor, yFactor, zFactor } = particle
-      t = particle.t += speed / 2
-      const a = Math.cos(t) + Math.sin(t * 1) / 10
-      const b = Math.sin(t) + Math.cos(t * 2) / 10
-      const s = Math.cos(t)
-      
-      dummy.position.set(
-        (particle.mx / 10) * a + xFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 1) * factor) / 10,
-        (particle.my / 10) * b + yFactor + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10,
-        (particle.my / 10) * b + zFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10
-      )
-      dummy.scale.set(s * 0.1, s * 0.1, s * 0.1)
-      dummy.rotation.set(s * 5, s * 5, s * 5)
-      dummy.updateMatrix()
-      mesh.current!.setMatrixAt(i, dummy.matrix)
-    })
-    mesh.current!.instanceMatrix.needsUpdate = true
+    if (!group.current) return
+    const t = state.clock.getElapsedTime()
+    group.current.position.y = Math.sin(t) * 0.1
+  })
+
+  const baseMaterial = new THREE.MeshStandardMaterial({
+    color: '#1a1a1a',
+    metalness: 0.8,
+    roughness: 0.2,
+  })
+
+  const barMaterial = new THREE.MeshStandardMaterial({
+    color: '#22C55E',
+    metalness: 0.3,
+    roughness: 0.1,
+    emissive: '#22C55E',
+    emissiveIntensity: 0.2
   })
 
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
-      <sphereGeometry args={[0.5, 16, 16]} />
-      <meshStandardMaterial 
-        color="#22C55E" 
-        emissive="#22C55E"
-        emissiveIntensity={2} 
-        roughness={0} 
-        metalness={1} 
-      />
-    </instancedMesh>
+    <group ref={group} position={[1.5, -0.5, -1]} rotation={[0.2, -0.4, 0]} scale={0.9}>
+      {/* Base */}
+      <mesh material={baseMaterial} position={[0, -0.2, 0]}>
+        <boxGeometry args={[3, 0.2, 1.5]} />
+      </mesh>
+
+      {/* Bars */}
+      <mesh material={barMaterial} position={[-1, 0.6, 0]}>
+        <boxGeometry args={[0.4, 1.2, 0.4]} />
+      </mesh>
+      <mesh material={barMaterial} position={[-0.2, 1, 0]}>
+        <boxGeometry args={[0.4, 2, 0.4]} />
+      </mesh>
+      <mesh material={barMaterial} position={[0.6, 1.4, 0]}>
+        <boxGeometry args={[0.4, 2.8, 0.4]} />
+      </mesh>
+    </group>
   )
 }
 
@@ -127,39 +119,43 @@ export function Hero3D() {
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-full absolute inset-0 -z-10">
+    <div ref={containerRef} className="w-full h-full absolute inset-0 -z-10 opacity-70 pointer-events-none">
       <Canvas
         dpr={[1, 2]}
-        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
+        gl={{ antialias: true, alpha: true }}
+        camera={{ position: [0, 0, 6], fov: 45 }}
         frameloop={isVisible ? 'always' : 'never'}
-        style={{ width: '100%', height: '100%' }}
       >
-        <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
         <Suspense fallback={null}>
-          <ambientLight intensity={0.2} />
-          <directionalLight position={[10, 10, 10]} intensity={1} color="#ffffff" />
-          <pointLight position={[-10, -10, -10]} intensity={0.5} color="#22C55E" />
+          <ambientLight intensity={0.8} />
+          <directionalLight position={[5, 10, 5]} intensity={1.5} color="#ffffff" />
+          <spotLight position={[-5, 5, 5]} intensity={1} angle={0.3} penumbra={1} color="#22C55E" />
           
-          <Float speed={2} rotationIntensity={1} floatIntensity={1.5}>
-            <AbstractCore />
-          </Float>
-          
-          <FloatingParticles />
-          <Stars radius={50} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
+          <PresentationControls
+            global
+            config={{ mass: 2, tension: 500 }}
+            snap={{ mass: 4, tension: 1500 }}
+            rotation={[0, 0, 0]}
+            polar={[-Math.PI / 6, Math.PI / 6]}
+            azimuth={[-Math.PI / 4, Math.PI / 4]}
+          >
+            <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
+              <PremiumDumbbell />
+            </Float>
+            
+            <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.8} floatingRange={[-0.1, 0.1]}>
+              <PremiumChart />
+            </Float>
+          </PresentationControls>
 
-          {/* Post processing for premium glowing effects */}
-          <EffectComposer>
-            <Bloom 
-              luminanceThreshold={0.2} 
-              mipmapBlur 
-              intensity={1.5} 
-            />
-            <ChromaticAberration 
-              blendFunction={BlendFunction.NORMAL} 
-              offset={new THREE.Vector2(0.002, 0.002)} 
-            />
-            <Noise opacity={0.05} />
-          </EffectComposer>
+          <ContactShadows
+            position={[0, -2, 0]}
+            opacity={0.4}
+            scale={20}
+            blur={2}
+            far={4}
+            color="#000000"
+          />
         </Suspense>
       </Canvas>
     </div>
