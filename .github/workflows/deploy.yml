@@ -1,8 +1,10 @@
-# ========================================
-# Deploy OpenGym — SSH-First (mirrors mazaya)
+# Deploy OpenGym — SSH-First Approach (mirrors mazaya)
 # Strategy: Build happens in GitHub CI (off-server)
 # Server only pulls the finished image and restarts.
-# ========================================
+# - No self-hosted runner needed
+# - No build on server (saves RAM)
+# - Reliable deployment
+
 name: Deploy to Server
 
 on:
@@ -18,36 +20,6 @@ jobs:
     timeout-minutes: 15
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
-      - name: Debug key shape (safe — only fingerprint via real ssh-keygen)
-        env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          # Write to file and test with ssh-keygen (the only reliable way for private keys)
-          printf '%s\n' "$SSH_KEY" > /tmp/key
-          chmod 600 /tmp/key
-          echo "Length (with newline): $(wc -c < /tmp/key) bytes"
-          echo "Lines: $(wc -l < /tmp/key)"
-          echo "Fingerprint: $(ssh-keygen -lf /tmp/key 2>&1)"
-          echo "Corresponding public key:"
-          ssh-keygen -yf /tmp/key 2>&1 | head -c 60
-          echo "..."
-
-      - name: Test SSH connection (real test, not appleboy)
-        env:
-          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-        run: |
-          printf '%s\n' "$SSH_KEY" > /tmp/key
-          chmod 600 /tmp/key
-          mkdir -p ~/.ssh && ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          echo "=== Key fingerprint ==="
-          ssh-keygen -lf /tmp/key
-          echo "=== Source IP we're connecting from ==="
-          curl -s https://api.ipify.org; echo
-          echo "=== Trying real ssh with verbose output ==="
-          ssh -v -i /tmp/key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami; hostname" 2>&1 | tail -40
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
