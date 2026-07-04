@@ -20,7 +20,7 @@ jobs:
     steps:
       - name: Inspect secret
         env:
-          SSH_KEY: ${{ secrets.SH_PRIVATE_KEY }}
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           echo "Length: $(printf '%s' "$SSH_KEY" | wc -c) bytes"
           echo "Line count: $(printf '%s' "$SSH_KEY" | wc -l)"
@@ -40,7 +40,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SH_PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           command_timeout: 10m
           script: |
             set -e
