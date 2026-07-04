@@ -22,7 +22,7 @@ jobs:
         env:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_USER: root
         run: |
           # 1. Write key — strip Windows \r, ensure trailing newline
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > /tmp/deploy_key
