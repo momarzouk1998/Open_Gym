@@ -56,7 +56,7 @@ function Counter({ value, suffix = '' }: { value: number; suffix?: string }) {
   return (
     <span>
       <span ref={ref}>0</span>
-      <span className="text-[#22C55E] drop-shadow-[0_0_8px_rgba(34,197,94,0.8)]">{suffix}</span>
+      <span className="text-[#22C55E] drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]">{suffix}</span>
     </span>
   )
 }
@@ -94,27 +94,20 @@ export function Hero() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-[100dvh] flex items-center pt-28 pb-12 overflow-hidden bg-[#0A0A0F]"
+      className="relative min-h-[100dvh] flex items-center pt-28 pb-12 overflow-hidden bg-app transition-colors duration-300"
     >
-      {/* Absolute 3D Canvas across the entire hero for immersive feel */}
-      <div className="absolute inset-0 z-0">
-        <Suspense fallback={null}>
-          <Hero3D />
-        </Suspense>
-      </div>
-
-      {/* Grid overlay to give it structure without hiding 3D */}
-      <div className="absolute inset-0 z-0 grid-bg opacity-40 pointer-events-none" />
+      {/* Grid overlay */}
+      <div className="absolute inset-0 z-0 grid-bg opacity-30 pointer-events-none" />
 
       {/* Glowing atmospheric elements */}
       <motion.div
-        className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-[#22C55E]/15 rounded-full blur-[100px] pointer-events-none"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
+        className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 8, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         className="absolute bottom-0 left-0 w-[250px] h-[250px] sm:w-[400px] sm:h-[400px] bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none"
-        animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
+        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 10, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut', delay: 1 }}
       />
 
@@ -132,11 +125,11 @@ export function Hero() {
             {/* Badge */}
             <motion.div
               variants={itemVariants}
-              whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(34,197,94,0.4)" }}
+              whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(34,197,94,0.3)" }}
               className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 mb-6 backdrop-blur-md transition-shadow"
             >
-              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#4ADE80] animate-pulse" />
-              <span className="text-xs sm:text-sm text-[#4ADE80] font-medium drop-shadow-[0_0_5px_rgba(34,197,94,0.8)]">
+              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#22C55E] animate-pulse" />
+              <span className="text-xs sm:text-sm text-[#22C55E] font-medium">
                 المنصة الأولى لإدارة الجيمات
               </span>
             </motion.div>
@@ -144,17 +137,17 @@ export function Hero() {
             {/* Heading */}
             <motion.h1
               variants={itemVariants}
-              className="font-cairo font-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] sm:leading-tight mb-6 text-white drop-shadow-lg"
+              className="font-cairo font-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] sm:leading-tight mb-6 text-strong"
             >
               إدارة جيمك
               <br />
-              من <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#4ADE80] to-[#22C55E] drop-shadow-[0_0_15px_rgba(34,197,94,0.6)]">شاشة واحدة</span>
+              من <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#22C55E] to-[#16A34A] drop-shadow-[0_0_10px_rgba(34,197,94,0.3)]">شاشة واحدة</span>
             </motion.h1>
 
             {/* Subheading */}
             <motion.p
               variants={itemVariants}
-              className="text-base sm:text-lg lg:text-xl text-gray-300 mb-8 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed drop-shadow-md"
+              className="text-base sm:text-lg lg:text-xl text-soft mb-8 max-w-xl mx-auto lg:mx-0 font-light leading-relaxed"
             >
               اشتراكات، مدفوعات، تقارير، وموظفين — كل حاجة في مكان واحد. 
               منصة متكاملة ومصممة بأحدث التقنيات لنجاح الجيم الخاص بك.
@@ -168,7 +161,7 @@ export function Hero() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                 <Link
                   href="/register"
-                  className="group flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-[#22C55E] text-white rounded-xl font-bold hover:bg-[#16A34A] transition-all hover:shadow-[0_0_30px_rgba(34,197,94,0.5)] border border-[#4ADE80]/50"
+                  className="group flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-[#22C55E] text-white rounded-xl font-bold hover:bg-[#16A34A] transition-all hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] border border-[#4ADE80]/50"
                 >
                   ابدأ تجربة مجانية
                   <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1.5 transition-transform" />
@@ -177,7 +170,7 @@ export function Hero() {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="w-full sm:w-auto">
                 <Link
                   href="#how"
-                  className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/5 border border-white/10 text-white rounded-xl font-semibold hover:bg-white/10 backdrop-blur-md transition-all hover:border-white/20"
+                  className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 surface-2 border border-app text-strong rounded-xl font-semibold hover:border-[#22C55E]/50 transition-all"
                 >
                   <Play className="w-4 h-4" />
                   شوف كيف يشتغل
@@ -188,13 +181,13 @@ export function Hero() {
             {/* Trust line */}
             <motion.p
               variants={itemVariants}
-              className="mt-4 sm:mt-6 text-xs sm:text-sm text-gray-400"
+              className="mt-4 sm:mt-6 text-xs sm:text-sm text-faint"
             >
               مفيش كريدت كارد مطلوب • إلغاء في أي وقت
             </motion.p>
           </motion.div>
 
-          {/* Visual: Dashboard Mockup */}
+          {/* Visual: Dashboard Mockup & 3D Elements */}
           <motion.div
             style={{ y: mockupY }}
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
@@ -202,24 +195,31 @@ export function Hero() {
             transition={{ delay: 0.4, type: 'spring', stiffness: 60, damping: 20 }}
             className="relative mt-8 lg:mt-0 hidden sm:block"
           >
+            {/* 3D Canvas explicitly placed HERE, separated from the header */}
+            <div className="absolute inset-0 -m-20 z-0 pointer-events-none">
+              <Suspense fallback={null}>
+                <Hero3D />
+              </Suspense>
+            </div>
+
             {/* Dashboard Mockup Card */}
             <motion.div
               whileHover={{ y: -10, rotateX: 2, rotateY: -2 }}
-              className="bg-[#111118]/60 backdrop-blur-xl border border-[#22C55E]/30 p-5 sm:p-7 rounded-2xl sm:rounded-3xl relative z-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_40px_rgba(34,197,94,0.2)] transition-all duration-500"
+              className="glass-card p-5 sm:p-7 rounded-2xl sm:rounded-3xl relative z-10 shadow-2xl transition-all duration-500"
               style={{ transformStyle: 'preserve-3d' }}
             >
               {/* Mock header */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+              <div className="flex items-center justify-between mb-6 pb-4 border-b border-app">
                 <div className="flex items-center gap-3">
                   <motion.div
                     animate={{ rotate: [0, -5, 5, 0] }}
                     transition={{ duration: 5, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut' }}
-                    className="w-10 h-10 rounded-xl bg-[#22C55E]/20 flex items-center justify-center border border-[#22C55E]/40 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                    className="w-10 h-10 rounded-xl bg-[#22C55E]/20 flex items-center justify-center border border-[#22C55E]/40"
                   >
-                    <Users className="w-5 h-5 text-[#4ADE80]" />
+                    <Users className="w-5 h-5 text-[#22C55E]" />
                   </motion.div>
                   <div>
-                    <h3 className="font-bold text-white text-sm sm:text-base">جيم القوة والأبطال</h3>
+                    <h3 className="font-bold text-strong text-sm sm:text-base">جيم القوة والأبطال</h3>
                     <p className="text-xs text-[#22C55E]">لوحة التحكم المباشرة</p>
                   </div>
                 </div>
@@ -236,16 +236,16 @@ export function Hero() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.8 + i * 0.15 }}
-                    className="bg-white/5 rounded-2xl p-4 sm:p-5 border border-white/5 hover:border-[#22C55E]/30 transition-colors"
+                    className="surface rounded-2xl p-4 sm:p-5 border border-app hover:border-[#22C55E]/30 transition-colors"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <stat.icon className="w-5 h-5 text-[#22C55E]" />
-                      <span className="text-[10px] sm:text-xs bg-[#22C55E]/20 text-[#4ADE80] px-2 py-1 rounded-md font-bold">
+                      <span className="text-[10px] sm:text-xs bg-[#22C55E]/10 text-[#22C55E] px-2 py-1 rounded-md font-bold">
                         {stat.badge}
                       </span>
                     </div>
-                    <div className="text-2xl sm:text-3xl font-black font-cairo text-white">{stat.value}</div>
-                    <div className="text-xs sm:text-sm text-gray-400 font-medium">{stat.label}</div>
+                    <div className="text-2xl sm:text-3xl font-black font-cairo text-strong">{stat.value}</div>
+                    <div className="text-xs sm:text-sm text-faint font-medium">{stat.label}</div>
                   </motion.div>
                 ))}
               </div>
@@ -255,14 +255,14 @@ export function Hero() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.1 }}
-                className="bg-white/5 rounded-2xl p-4 sm:p-5 border border-white/5"
+                className="surface rounded-2xl p-4 sm:p-5 border border-app"
               >
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-[#22C55E]" />
-                    <span className="text-sm sm:text-base font-bold text-white">الإيرادات الشهرية</span>
+                    <span className="text-sm sm:text-base font-bold text-strong">الإيرادات الشهرية</span>
                   </div>
-                  <span className="text-sm sm:text-base font-black text-[#4ADE80] drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]">
+                  <span className="text-sm sm:text-base font-black text-[#22C55E]">
                     12,400 ج
                   </span>
                 </div>
@@ -270,7 +270,7 @@ export function Hero() {
                   {[40, 55, 45, 70, 60, 85, 75, 95].map((h, i) => (
                     <motion.div
                       key={i}
-                      className="w-full bg-gradient-to-t from-[#22C55E]/20 to-[#22C55E] rounded-t-md relative group"
+                      className="w-full bg-gradient-to-t from-[#22C55E]/30 to-[#22C55E] rounded-t-md relative group"
                       initial={{ height: 0 }}
                       animate={{ height: `${h}%` }}
                       transition={{ delay: 1.2 + i * 0.05, type: 'spring', stiffness: 60 }}
@@ -286,11 +286,11 @@ export function Hero() {
             <motion.div
               animate={{ y: [-10, 10, -10] }}
               transition={{ duration: 4, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut' }}
-              className="absolute -top-6 -right-6 lg:-right-10 bg-[#0A0A0F]/80 backdrop-blur-md border border-[#22C55E]/50 px-4 py-3 rounded-2xl z-20 shadow-[0_0_20px_rgba(34,197,94,0.3)]"
+              className="absolute -top-6 -right-6 lg:-right-10 glass-card px-4 py-3 rounded-2xl z-20 shadow-lg"
             >
               <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-yellow-400" />
-                <span className="text-xs sm:text-sm font-bold text-white">نمو +25%</span>
+                <Sparkles className="w-4 h-4 text-yellow-500" />
+                <span className="text-xs sm:text-sm font-bold text-strong">نمو +25%</span>
               </div>
             </motion.div>
           </motion.div>
@@ -303,7 +303,7 @@ export function Hero() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-50px' }}
-          className="mt-16 sm:mt-24 grid grid-cols-3 gap-2 sm:gap-8 max-w-4xl mx-auto w-full border-t border-white/5 pt-8 sm:pt-12"
+          className="mt-16 sm:mt-24 grid grid-cols-3 gap-2 sm:gap-8 max-w-4xl mx-auto w-full border-t border-app pt-8 sm:pt-12"
         >
           {[
             { value: 50, suffix: '+', label: 'جيم يثقون بنا' },
@@ -311,10 +311,10 @@ export function Hero() {
             { value: 1000000, suffix: '+', label: 'جنيه إيرادات' },
           ].map((stat, i) => (
             <motion.div key={i} variants={itemVariants} className="text-center">
-              <div className="text-xl sm:text-3xl md:text-5xl font-black font-cairo text-white tracking-tight">
+              <div className="text-xl sm:text-3xl md:text-5xl font-black font-cairo text-strong tracking-tight">
                 <Counter value={stat.value} suffix={stat.suffix} />
               </div>
-              <div className="text-[10px] sm:text-sm text-gray-400 mt-1 sm:mt-2 font-medium">{stat.label}</div>
+              <div className="text-[10px] sm:text-sm text-faint mt-1 sm:mt-2 font-medium">{stat.label}</div>
             </motion.div>
           ))}
         </motion.div>

@@ -2,11 +2,12 @@
 
 import { useRef, useState, useEffect, Suspense } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, ContactShadows, Environment, PresentationControls } from '@react-three/drei'
+import { Float, ContactShadows, PresentationControls } from '@react-three/drei'
 import * as THREE from 'three'
+import { useTheme } from 'next-themes'
 
 // 3D Dumbbell
-function PremiumDumbbell() {
+function PremiumDumbbell({ isDark }: { isDark: boolean }) {
   const group = useRef<THREE.Group>(null)
 
   useFrame((state) => {
@@ -16,10 +17,13 @@ function PremiumDumbbell() {
     group.current.rotation.z = Math.cos(t / 2) * 0.1
   })
 
-  // Materials
+  // Materials adapt to theme
+  const metalColor = isDark ? '#333333' : '#E2E8F0'
+  const metalness = isDark ? 0.9 : 0.8
+  
   const metalMaterial = new THREE.MeshStandardMaterial({
-    color: '#333333',
-    metalness: 0.9,
+    color: metalColor,
+    metalness,
     roughness: 0.2,
   })
   
@@ -28,7 +32,7 @@ function PremiumDumbbell() {
     metalness: 0.5,
     roughness: 0.2,
     emissive: '#22C55E',
-    emissiveIntensity: 0.4
+    emissiveIntensity: isDark ? 0.4 : 0.1
   })
 
   return (
@@ -58,7 +62,7 @@ function PremiumDumbbell() {
 }
 
 // 3D Chart
-function PremiumChart() {
+function PremiumChart({ isDark }: { isDark: boolean }) {
   const group = useRef<THREE.Group>(null)
   
   useFrame((state) => {
@@ -67,9 +71,10 @@ function PremiumChart() {
     group.current.position.y = Math.sin(t) * 0.1
   })
 
+  const baseColor = isDark ? '#1a1a1a' : '#F1F5F9'
   const baseMaterial = new THREE.MeshStandardMaterial({
-    color: '#1a1a1a',
-    metalness: 0.8,
+    color: baseColor,
+    metalness: 0.6,
     roughness: 0.2,
   })
 
@@ -78,7 +83,7 @@ function PremiumChart() {
     metalness: 0.3,
     roughness: 0.1,
     emissive: '#22C55E',
-    emissiveIntensity: 0.2
+    emissiveIntensity: isDark ? 0.3 : 0.05
   })
 
   return (
@@ -105,6 +110,12 @@ function PremiumChart() {
 export function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(true)
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const el = containerRef.current
@@ -118,8 +129,12 @@ export function Hero3D() {
     return () => observer.disconnect()
   }, [])
 
+  if (!mounted) return null
+  
+  const isDark = resolvedTheme === 'dark'
+
   return (
-    <div ref={containerRef} className="w-full h-full absolute inset-0 -z-10 opacity-70 pointer-events-none">
+    <div ref={containerRef} className="w-full h-full">
       <Canvas
         dpr={[1, 2]}
         gl={{ antialias: true, alpha: true }}
@@ -127,7 +142,7 @@ export function Hero3D() {
         frameloop={isVisible ? 'always' : 'never'}
       >
         <Suspense fallback={null}>
-          <ambientLight intensity={0.8} />
+          <ambientLight intensity={isDark ? 0.8 : 1.2} />
           <directionalLight position={[5, 10, 5]} intensity={1.5} color="#ffffff" />
           <spotLight position={[-5, 5, 5]} intensity={1} angle={0.3} penumbra={1} color="#22C55E" />
           
@@ -139,21 +154,21 @@ export function Hero3D() {
             azimuth={[-Math.PI / 4, Math.PI / 4]}
           >
             <Float speed={2} rotationIntensity={0.5} floatIntensity={1}>
-              <PremiumDumbbell />
+              <PremiumDumbbell isDark={isDark} />
             </Float>
             
             <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.8} floatingRange={[-0.1, 0.1]}>
-              <PremiumChart />
+              <PremiumChart isDark={isDark} />
             </Float>
           </PresentationControls>
 
           <ContactShadows
             position={[0, -2, 0]}
-            opacity={0.4}
+            opacity={isDark ? 0.4 : 0.2}
             scale={20}
             blur={2}
             far={4}
-            color="#000000"
+            color={isDark ? "#000000" : "#64748b"}
           />
         </Suspense>
       </Canvas>
