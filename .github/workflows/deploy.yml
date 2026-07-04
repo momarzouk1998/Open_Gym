@@ -41,8 +41,12 @@ jobs:
           printf '%s\n' "$SSH_KEY" > /tmp/key
           chmod 600 /tmp/key
           mkdir -p ~/.ssh && ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-          echo "=== Trying real ssh ==="
-          ssh -i /tmp/key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami; hostname"
+          echo "=== Key fingerprint ==="
+          ssh-keygen -lf /tmp/key
+          echo "=== Source IP we're connecting from ==="
+          curl -s https://api.ipify.org; echo
+          echo "=== Trying real ssh with verbose output ==="
+          ssh -v -i /tmp/key -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami; hostname" 2>&1 | tail -40
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
