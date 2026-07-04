@@ -1,98 +1,112 @@
 'use client'
 
-import { useRef, useEffect, useState, Suspense } from 'react'
+import { useRef, useEffect, useState, Suspense, useMemo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, ContactShadows, MeshDistortMaterial } from '@react-three/drei'
+import { Float, MeshDistortMaterial, MeshWobbleMaterial, Stars, PerspectiveCamera } from '@react-three/drei'
+import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing'
+import { BlendFunction } from 'postprocessing'
 import * as THREE from 'three'
 
-// A stylized floating dumbbell built from primitives
-function Dumbbell() {
-  const groupRef = useRef<THREE.Group>(null)
-
+// Abstract 3D shape that looks premium and dynamic (representing infinite possibilities/strength)
+function AbstractCore() {
+  const meshRef = useRef<THREE.Mesh>(null)
+  
   useFrame((state) => {
-    if (!groupRef.current) return
-    // Gentle rotation following pointer X
+    if (!meshRef.current) return
     const t = state.clock.getElapsedTime()
-    groupRef.current.rotation.y = t * 0.3
-    groupRef.current.rotation.z = Math.sin(t * 0.4) * 0.08
+    // Dynamic rotation
+    meshRef.current.rotation.x = t * 0.2
+    meshRef.current.rotation.y = t * 0.3
   })
 
-  const barColor = '#E2E8F0'
-  const weightColor = '#22C55E'
-
+  // Exact green from logo: #22C55E
   return (
-    <group ref={groupRef} scale={1.1}>
-      {/* Bar */}
-      <mesh rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.16, 0.16, 3.2, 32]} />
-        <meshStandardMaterial color={barColor} metalness={0.9} roughness={0.2} />
+    <group>
+      {/* Outer abstract shape */}
+      <mesh ref={meshRef}>
+        <torusKnotGeometry args={[1.2, 0.4, 128, 32]} />
+        <MeshDistortMaterial
+          color="#0A0A0F"
+          emissive="#22C55E"
+          emissiveIntensity={0.8}
+          distort={0.4}
+          speed={2}
+          roughness={0.2}
+          metalness={0.8}
+          wireframe={true}
+        />
       </mesh>
-
-      {/* Left weights (outer) */}
-      <mesh position={[-1.6, 0, 0]}>
-        <cylinderGeometry args={[0.75, 0.75, 0.5, 48]} />
-        <meshStandardMaterial color={weightColor} metalness={0.6} roughness={0.25} />
-      </mesh>
-      {/* Left weights (inner) */}
-      <mesh position={[-1.15, 0, 0]}>
-        <cylinderGeometry args={[0.6, 0.6, 0.45, 48]} />
-        <meshStandardMaterial color={weightColor} metalness={0.6} roughness={0.25} />
-      </mesh>
-
-      {/* Right weights (outer) */}
-      <mesh position={[1.6, 0, 0]}>
-        <cylinderGeometry args={[0.75, 0.75, 0.5, 48]} />
-        <meshStandardMaterial color={weightColor} metalness={0.6} roughness={0.25} />
-      </mesh>
-      {/* Right weights (inner) */}
-      <mesh position={[1.15, 0, 0]}>
-        <cylinderGeometry args={[0.6, 0.6, 0.45, 48]} />
-        <meshStandardMaterial color={weightColor} metalness={0.6} roughness={0.25} />
-      </mesh>
-
-      {/* End caps */}
-      {[-1.85, 1.85].map((x, i) => (
-        <mesh key={i} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.2, 0.2, 0.15, 32]} />
-          <meshStandardMaterial color={barColor} metalness={0.9} roughness={0.2} />
+      
+      {/* Inner glowing core */}
+      <Float speed={2} rotationIntensity={2} floatIntensity={2}>
+        <mesh>
+          <sphereGeometry args={[0.6, 64, 64]} />
+          <MeshWobbleMaterial
+            color="#22C55E"
+            emissive="#22C55E"
+            emissiveIntensity={1.5}
+            factor={1}
+            speed={2}
+            roughness={0}
+            metalness={1}
+          />
         </mesh>
-      ))}
+      </Float>
     </group>
   )
 }
 
-// Small orbiting spheres for atmosphere
-function OrbitingSpheres() {
-  const ref = useRef<THREE.Group>(null)
+function FloatingParticles() {
+  const count = 50
+  const mesh = useRef<THREE.InstancedMesh>(null)
+  
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+  const particles = useMemo(() => {
+    const temp = []
+    for (let i = 0; i < count; i++) {
+      const t = Math.random() * 100
+      const factor = 20 + Math.random() * 100
+      const speed = 0.01 + Math.random() / 200
+      const xFactor = -10 + Math.random() * 20
+      const yFactor = -10 + Math.random() * 20
+      const zFactor = -10 + Math.random() * 20
+      temp.push({ t, factor, speed, xFactor, yFactor, zFactor, mx: 0, my: 0 })
+    }
+    return temp
+  }, [count])
+
   useFrame((state) => {
-    if (!ref.current) return
-    ref.current.rotation.y = state.clock.getElapsedTime() * 0.15
+    particles.forEach((particle, i) => {
+      let { t, factor, speed, xFactor, yFactor, zFactor } = particle
+      t = particle.t += speed / 2
+      const a = Math.cos(t) + Math.sin(t * 1) / 10
+      const b = Math.sin(t) + Math.cos(t * 2) / 10
+      const s = Math.cos(t)
+      
+      dummy.position.set(
+        (particle.mx / 10) * a + xFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 1) * factor) / 10,
+        (particle.my / 10) * b + yFactor + Math.sin((t / 10) * factor) + (Math.cos(t * 2) * factor) / 10,
+        (particle.my / 10) * b + zFactor + Math.cos((t / 10) * factor) + (Math.sin(t * 3) * factor) / 10
+      )
+      dummy.scale.set(s * 0.1, s * 0.1, s * 0.1)
+      dummy.rotation.set(s * 5, s * 5, s * 5)
+      dummy.updateMatrix()
+      mesh.current!.setMatrixAt(i, dummy.matrix)
+    })
+    mesh.current!.instanceMatrix.needsUpdate = true
   })
 
-  const spheres = [
-    { pos: [2.8, 1.2, -1] as const, scale: 0.18, color: '#22C55E' },
-    { pos: [-2.6, -1.4, -0.5] as const, scale: 0.14, color: '#4ADE80' },
-    { pos: [2.2, -1.6, 0.8] as const, scale: 0.12, color: '#16A34A' },
-    { pos: [-2.9, 0.8, 0.3] as const, scale: 0.1, color: '#22C55E' },
-  ]
-
   return (
-    <group ref={ref}>
-      {spheres.map((s, i) => (
-        <Float key={i} speed={2 + i * 0.3} rotationIntensity={1} floatIntensity={1.5}>
-          <mesh position={s.pos} scale={s.scale}>
-            <sphereGeometry args={[1, 32, 32]} />
-            <MeshDistortMaterial
-              color={s.color}
-              distort={0.3}
-              speed={2}
-              emissive={s.color}
-              emissiveIntensity={0.2}
-            />
-          </mesh>
-        </Float>
-      ))}
-    </group>
+    <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
+      <sphereGeometry args={[0.5, 16, 16]} />
+      <meshStandardMaterial 
+        color="#22C55E" 
+        emissive="#22C55E"
+        emissiveIntensity={2} 
+        roughness={0} 
+        metalness={1} 
+      />
+    </instancedMesh>
   )
 }
 
@@ -100,7 +114,6 @@ export function Hero3D() {
   const containerRef = useRef<HTMLDivElement>(null)
   const [isVisible, setIsVisible] = useState(true)
 
-  // Pause 3D rendering when the hero section scrolls out of view
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -114,40 +127,39 @@ export function Hero3D() {
   }, [])
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height: '100%' }}>
+    <div ref={containerRef} className="w-full h-full absolute inset-0 -z-10">
       <Canvas
-        camera={{ position: [0, 0.5, 6], fov: 45 }}
         dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         frameloop={isVisible ? 'always' : 'never'}
         style={{ width: '100%', height: '100%' }}
       >
+        <PerspectiveCamera makeDefault position={[0, 0, 8]} fov={50} />
         <Suspense fallback={null}>
-          {/* Lighting — removed heavy <Environment preset="city" /> */}
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[5, 8, 5]} intensity={1.5} color="#ffffff" />
-          <pointLight position={[-5, -3, -5]} intensity={0.8} color="#22C55E" />
-          <spotLight position={[0, 6, 3]} intensity={1} angle={0.4} penumbra={1} color="#4ADE80" />
-          {/* Hemisphere light for subtle ambient fill (replaces Environment) */}
-          <hemisphereLight args={['#ffffff', '#22C55E', 0.3]} />
-
-          {/* Main dumbbell floating */}
-          <Float speed={1.5} rotationIntensity={0.3} floatIntensity={0.8}>
-            <Dumbbell />
+          <ambientLight intensity={0.2} />
+          <directionalLight position={[10, 10, 10]} intensity={1} color="#ffffff" />
+          <pointLight position={[-10, -10, -10]} intensity={0.5} color="#22C55E" />
+          
+          <Float speed={2} rotationIntensity={1} floatIntensity={1.5}>
+            <AbstractCore />
           </Float>
+          
+          <FloatingParticles />
+          <Stars radius={50} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
 
-          {/* Atmosphere */}
-          <OrbitingSpheres />
-
-          {/* Soft shadow */}
-          <ContactShadows
-            position={[0, -2.2, 0]}
-            opacity={0.4}
-            scale={10}
-            blur={2.5}
-            far={4}
-            color="#22C55E"
-          />
+          {/* Post processing for premium glowing effects */}
+          <EffectComposer>
+            <Bloom 
+              luminanceThreshold={0.2} 
+              mipmapBlur 
+              intensity={1.5} 
+            />
+            <ChromaticAberration 
+              blendFunction={BlendFunction.NORMAL} 
+              offset={new THREE.Vector2(0.002, 0.002)} 
+            />
+            <Noise opacity={0.05} />
+          </EffectComposer>
         </Suspense>
       </Canvas>
     </div>

@@ -113,3 +113,32 @@ export async function PATCH(
 
   return NextResponse.json({ success: true, gym: updated })
 }
+
+// DELETE /api/admin/gyms/[id] — super_admin deletes a gym
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'غير مسجّل الدخول' }, { status: 401 })
+  }
+  if (session.user.role !== 'super_admin') {
+    return NextResponse.json({ error: 'ممنوع' }, { status: 403 })
+  }
+
+  const { id } = await params
+
+  try {
+    await prisma.gym.delete({
+      where: { id },
+    })
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error deleting gym:', error)
+    return NextResponse.json(
+      { error: 'حدث خطأ أثناء حذف الجيم. قد توجد بيانات مرتبطة تمنع الحذف.' },
+      { status: 500 }
+    )
+  }
+}

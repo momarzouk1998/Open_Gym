@@ -10,6 +10,7 @@ import {
   Loader2,
   CheckCircle2,
   Save,
+  Trash2,
 } from 'lucide-react'
 
 interface AdminGym {
@@ -65,6 +66,7 @@ export default function AdminGymEditPage() {
   const [nextBillingDate, setNextBillingDate] = useState('')
 
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
@@ -126,6 +128,23 @@ export default function AdminGymEditPage() {
       setError(err instanceof Error ? err.message : 'حدث خطأ')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!window.confirm('هل أنت متأكد من حذف الجيم بشكل نهائي؟ هذا الإجراء لا يمكن التراجع عنه وسيحذف كل بيانات الجيم والأعضاء المرتبطين به.')) return
+    setDeleting(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/gyms/${gymId}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل الحذف')
+      router.push('/admin/gyms')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الحذف')
+      setDeleting(false)
     }
   }
 
@@ -363,6 +382,31 @@ export default function AdminGymEditPage() {
           )}
         </button>
       </form>
+
+      {/* Delete Gym Zone */}
+      <div className="glass-card p-6 rounded-2xl border-red-500/20 bg-red-500/5 mt-6">
+        <h3 className="font-cairo font-bold text-lg text-red-500 mb-2">منطقة الخطر</h3>
+        <p className="text-sm text-muted-c mb-4">
+          حذف الجيم سيؤدي إلى مسح كل البيانات المرتبطة به نهائياً (الاشتراكات، الأعضاء، الفروع...).
+        </p>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="w-full py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-semibold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {deleting ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              جاري الحذف...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-5 h-5" />
+              حذف الجيم نهائياً
+            </>
+          )}
+        </button>
+      </div>
     </div>
   )
 }
