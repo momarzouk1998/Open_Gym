@@ -1,5 +1,5 @@
 # ========================================
-# Deploy OpenGym — SSH-First (mirrors mazaya exactly)
+# Deploy OpenGym — SSH-First (mirrors mazaya)
 # Strategy: Build happens in GitHub CI (off-server)
 # Server only pulls the finished image and restarts.
 # ========================================
@@ -18,12 +18,29 @@ jobs:
     timeout-minutes: 15
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
+      - name: Inspect secret
+        env:
+          SSH_KEY: ${{ secrets.SH_PRIVATE_KEY }}
+        run: |
+          echo "Length: $(printf '%s' "$SSH_KEY" | wc -c) bytes"
+          echo "Line count: $(printf '%s' "$SSH_KEY" | wc -l)"
+          echo "--- First 3 lines ---"
+          printf '%s\n' "$SSH_KEY" | head -3
+          echo "--- Last 3 lines ---"
+          printf '%s\n' "$SSH_KEY" | tail -3
+          echo "--- Save to file for inspection ---"
+          printf '%s\n' "$SSH_KEY" > /tmp/secret_dump.txt
+          ls -la /tmp/secret_dump.txt
+          cat /tmp/secret_dump.txt | head -3
+          echo "[...]"
+          cat /tmp/secret_dump.txt | tail -3
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SH_PRIVATE_KEY }}
           command_timeout: 10m
           script: |
             set -e
