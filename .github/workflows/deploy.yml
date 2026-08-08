@@ -23,6 +23,8 @@ jobs:
           SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: root
+          GHCR_PAT: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
         run: |
           # 1. Write key — strip Windows \r, ensure trailing newline
           printf '%s\n' "$SSH_KEY" | tr -d '\r' > /tmp/deploy_key
@@ -48,7 +50,12 @@ jobs:
               -o StrictHostKeyChecking=accept-new \
               "$SSH_USER@$SSH_HOST" "echo CONNECTION_OK; whoami" 2>&1
 
-          # 5. Deploy
+          # 5. GHCR Authentication on server
+          echo ""
+          echo "=== Logging in to GHCR on server ==="
+          echo "$GHCR_PAT" | ssh -i /tmp/deploy_key "$SSH_USER@$SSH_HOST" "docker login ghcr.io -u $GHCR_USER --password-stdin"
+
+          # 6. Deploy
           echo ""
           echo "=== Starting deployment ==="
           ssh -i /tmp/deploy_key -o ConnectTimeout=30 \
