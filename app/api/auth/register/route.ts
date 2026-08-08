@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { slugify } from '@/lib/utils'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import type { AddonKey } from '@prisma/client'
 
 // All addons unlocked during 14-day trial (no extra_branch — covered by branches)
@@ -16,6 +17,19 @@ const TRIAL_ADDONS: AddonKey[] = [
 
 export async function POST(request: Request) {
   try {
+    // Rate limit: max 5 registrations per IP per 10 minutes
+    const ip = getClientIp(request)
+    const rl = rateLimit(`register:${ip}`, { limit: 5, windowSecs: 600 })
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: `محاولات كثيرة. حاول بعد ${rl.retryAfter} ثانية.` },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(rl.retryAfter) },
+        }
+      )
+    }
+
     const body = await request.json()
     const {
       gymName,

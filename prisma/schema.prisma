@@ -106,6 +106,7 @@ model Gym {
   classBookings ClassBooking[]
   gymInvoices   GymInvoice[]
   addonChanges  AddonChange[]
+  auditLogs     AuditLog[]
 
   @@map("gyms")
 }
@@ -371,6 +372,27 @@ model AddonChange {
   gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
 
   @@map("addon_changes")
+}
+
+// ========================================
+// AUDIT LOG
+// ========================================
+model AuditLog {
+  id         String   @id @default(uuid())
+  gymId      String   @map("gym_id")
+  userId     String   @map("user_id")
+  action     String   // e.g. "member.create", "payment.delete", "subscription.freeze"
+  entityType String   @map("entity_type") // "member" | "payment" | "subscription" | ...
+  entityId   String?  @map("entity_id")
+  meta       Json?    // extra details (name, amount, etc.)
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  gym Gym @relation(fields: [gymId], references: [id], onDelete: Cascade)
+
+  @@index([gymId, createdAt(sort: Desc)])
+  @@index([gymId, entityType])
+  @@map("audit_logs")
 }
 
 // ========================================

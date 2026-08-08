@@ -8,11 +8,11 @@ import {
   Users,
   Plus,
   Search,
-  Loader2,
   Phone,
   ChevronRight,
   ChevronLeft,
 } from 'lucide-react'
+import { MembersTableSkeleton } from '@/components/ui/Skeleton'
 
 interface MemberSub {
   id: string
@@ -52,9 +52,14 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true)
 
   const fetchMembers = useCallback(
-    async (p = 1, s = '', status = '') => {
+    async (p = 1, s = '', status = '', optimistic?: { id: string; memberNumber: string; fullName: string; phone: string | null; gender: string | null; isActive: boolean; createdAt: string; subscriptions: MemberSub[] }) => {
       if (!gymSlug) return
       setLoading(true)
+
+      // Show optimistic row at top immediately
+      if (optimistic) {
+        setMembers((prev) => [optimistic, ...prev.filter((m) => m.id !== optimistic.id)])
+      }
 
       const params = new URLSearchParams({ page: String(p) })
       if (s) params.set('search', s)
@@ -141,6 +146,9 @@ export default function MembersPage() {
       </div>
 
       {/* Table */}
+      {loading && members.length === 0 ? (
+        <MembersTableSkeleton />
+      ) : (
       <div className="glass-card rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right">
@@ -155,14 +163,7 @@ export default function MembersPage() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="p-16 text-center">
-                    <Loader2 className="w-8 h-8 mx-auto mb-3 animate-spin text-[#22C55E]" />
-                    <p className="text-faint">جاري التحميل...</p>
-                  </td>
-                </tr>
-              ) : members.length === 0 ? (
+              {loading ? null : members.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-16 text-center text-faint">
                     <Users className="w-16 h-16 mx-auto mb-4 opacity-20" />
@@ -237,6 +238,7 @@ export default function MembersPage() {
           </table>
         </div>
       </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && !loading && (

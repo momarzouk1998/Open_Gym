@@ -19,6 +19,7 @@ import {
   EyeOff,
 } from 'lucide-react'
 import { Logo } from '@/components/Logo'
+import { PasswordStrength } from '@/components/ui/PasswordStrength'
 
 type FormData = {
   // Gym
@@ -66,8 +67,20 @@ export default function RegisterPage() {
         setError('البريد الإلكتروني مطلوب')
         return false
       }
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(formData.ownerEmail.trim())) {
+        setError('صيغة البريد الإلكتروني غير صحيحة')
+        return false
+      }
       if (!formData.ownerPhone.trim()) {
         setError('رقم التليفون مطلوب')
+        return false
+      }
+      // Validate Egyptian phone number (01x + 9 digits = 11 digits total)
+      const phoneRegex = /^01[0-9]{9}$/
+      if (!phoneRegex.test(formData.ownerPhone.trim())) {
+        setError('رقم التليفون غير صحيح — مثال: 01012345678')
         return false
       }
       if (formData.ownerPassword.length < 6) {
@@ -104,7 +117,7 @@ export default function RegisterPage() {
         redirect: false,
       })
 
-      router.push('/dashboard')
+      router.push('/onboarding')
       router.refresh()
     } catch {
       setError('حدث خطأ في الاتصال، حاول مرة أخرى')
@@ -281,6 +294,7 @@ export default function RegisterPage() {
                     className="w-full bg-app border border-app rounded-xl py-3 px-4 text-strong placeholder:text-faint focus:outline-none focus:border-[#22C55E]/50 focus:ring-2 focus:ring-[#22C55E]/20 text-left"
                     placeholder="6 حروف على الأقل"
                   />
+                  <PasswordStrength password={formData.ownerPassword} />
                 </div>
               </div>
 

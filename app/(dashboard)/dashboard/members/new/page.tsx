@@ -58,6 +58,19 @@ export default function NewMemberPage() {
     setLoading(true)
     setError('')
 
+    // Build an optimistic member object to show immediately
+    const optimisticId = `optimistic-${Date.now()}`
+    const optimisticMember = {
+      id: optimisticId,
+      memberNumber: '...',
+      fullName: form.fullName,
+      phone: form.phone || null,
+      gender: form.gender || null,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      subscriptions: [],
+    }
+
     try {
       // 1. Create the member
       const memberRes = await fetch(`/api/gyms/${gymSlug}/members`, {
@@ -102,7 +115,8 @@ export default function NewMemberPage() {
         }
       }
 
-      router.push('/dashboard/members')
+      // Navigate immediately — member exists in DB
+      router.push(`/dashboard/members/${memberData.member.id}`)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ'
       setError(message)

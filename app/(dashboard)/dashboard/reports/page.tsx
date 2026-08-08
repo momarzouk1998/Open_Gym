@@ -1,7 +1,9 @@
 'use client'
 
 import { useApi } from '@/hooks/useApi'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, exportToCsv } from '@/lib/utils'
+import { useGymStore } from '@/store/gym-store'
+import { DashboardChartSkeleton } from '@/components/ui/Skeleton'
 import {
   BarChart3,
   TrendingUp,
@@ -9,6 +11,7 @@ import {
   CreditCard,
   Loader2,
   Wallet,
+  Download,
 } from 'lucide-react'
 import {
   BarChart,
@@ -55,13 +58,42 @@ const PIE_COLORS = ['#22C55E', '#4ADE80', '#3B82F6', '#F59E0B', '#EF4444', '#647
 
 export default function ReportsPage() {
   const { data, loading, error } = useApi<ReportsData>('/reports')
+  const { gym } = useGymStore()
+
+  const handleExport = () => {
+    if (!data) return
+    const gymName = gym?.name || 'gym'
+    const date = new Date().toISOString().slice(0, 10)
+
+    // Sheet 1: Revenue by month
+    exportToCsv(
+      data.revenueChart.map((r) => ({ الشهر: r.label, 'الإيرادات (ج)': r.revenue })),
+      `${gymName}-الإيرادات-${date}`
+    )
+
+    // Sheet 2: Revenue by payment method (separate file)
+    const methodLabelsMap: Record<string, string> = {
+      cash: 'كاش', instapay: 'انستاباي', vodafone_cash: 'فودافون كاش',
+      bank_transfer: 'تحويل بنكي', other: 'أخرى',
+    }
+    exportToCsv(
+      data.revenueByMethod.map((m) => ({
+        'طريقة الدفع': methodLabelsMap[m.method] || m.method,
+        'الإجمالي (ج)': m.total,
+        'عدد المعاملات': m.count,
+      })),
+      `${gymName}-طرق-الدفع-${date}`
+    )
+
+    // Sheet 3: Member growth
+    exportToCsv(
+      data.memberGrowth.map((m) => ({ الشهر: m.label, 'أعضاء جدد': m.newMembers })),
+      `${gymName}-نمو-الأعضاء-${date}`
+    )
+  }
 
   if (loading && !data) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-[#22C55E]" />
-      </div>
-    )
+    return <DashboardChartSkeleton />
   }
 
   if (error) {
@@ -132,14 +164,24 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[#22C55E]/10 flex items-center justify-center">
-          <BarChart3 className="w-5 h-5 text-[#22C55E]" />
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#22C55E]/10 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-[#22C55E]" />
+          </div>
+          <div>
+            <h2 className="font-cairo font-bold text-2xl">التقارير</h2>
+            <p className="text-sm text-muted-c">نظرة تحليلية على أداء الجيم</p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-cairo font-bold text-2xl">التقارير</h2>
-          <p className="text-sm text-muted-c">نظرة تحليلية على أداء الجيم</p>
-        </div>
+        <button
+          onClick={handleExport}
+          disabled={!data}
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-[#22C55E]/40 text-[#22C55E] rounded-xl text-sm font-semibold hover:bg-[#22C55E]/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <Download className="w-4 h-4" />
+          تصدير CSV
+        </button>
       </div>
 
       {/* Stat cards */}

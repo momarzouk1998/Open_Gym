@@ -142,14 +142,18 @@ export async function getMember(id: string, gymId: string) {
 }
 
 export async function generateMemberNumber(gymId: string): Promise<string> {
-  const count = await prisma.member.count({ where: { gymId } })
-  const next = count + 1
+  // Use a random suffix instead of count-based sequential numbering to avoid
+  // race conditions when two members are created simultaneously.
+  // Format: PREFIX-YYMM-XXXXX (prefix from gym slug + year-month + 5 random hex chars)
   const gym = await prisma.gym.findUnique({
     where: { id: gymId },
     select: { slug: true },
   })
   const prefix = gym?.slug?.slice(0, 3).toUpperCase() || 'GYM'
-  return `${prefix}-${String(next).padStart(4, '0')}`
+  const now = new Date()
+  const yymm = `${String(now.getFullYear()).slice(2)}${String(now.getMonth() + 1).padStart(2, '0')}`
+  const rand = Math.floor(Math.random() * 0xfffff).toString(16).toUpperCase().padStart(5, '0')
+  return `${prefix}-${yymm}-${rand}`
 }
 
 // ========================================

@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 import { authConfig } from '../auth.config'
+import { rateLimit } from './rate-limit'
 
 /**
  * Full NextAuth config (Node runtime).
@@ -26,6 +27,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null
+        }
+
+        // Rate limit: max 10 login attempts per email per 15 minutes
+        const emailKey = `login:${(credentials.email as string).toLowerCase()}`
+        const rl = rateLimit(emailKey, { limit: 10, windowSecs: 900 })
+        if (!rl.allowed) {
+          // Throw so NextAuth surfaces the error to the client
+          throw new Error(`محاولات كثيرة. حاول بعد ${rl.retryAfter} ثانية.`)
         }
 
         const user = await prisma.user.findUnique({

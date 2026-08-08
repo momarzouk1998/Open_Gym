@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useGymStore } from '@/store/gym-store'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { ListPageSkeleton } from '@/components/ui/Skeleton'
 import {
   CreditCard,
   Search,
@@ -204,6 +205,10 @@ export default function SubscriptionsPage() {
 
   const inputClass =
     'w-full bg-app border border-app rounded-xl py-3 px-4 text-strong focus:outline-none focus:border-[#22C55E]/50 focus:ring-2 focus:ring-[#22C55E]/20'
+
+  if (loading && subs.length === 0) {
+    return <ListPageSkeleton />
+  }
 
   return (
     <div className="space-y-6">

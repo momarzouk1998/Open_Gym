@@ -21,6 +21,7 @@ import {
   UserCircle,
   CalendarClock,
   Crown,
+  History,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { Logo } from '@/components/Logo'
@@ -216,6 +217,20 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           >
             <Crown className="w-5 h-5" />
             <span className="text-sm font-medium">الباقات والأسعار</span>
+          </Link>
+
+          {/* Audit Logs */}
+          <Link
+            href="/dashboard/audit-logs"
+            onClick={onClose}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+              isActive('/dashboard/audit-logs')
+                ? 'bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20'
+                : 'text-muted-c hover:surface hover:text-strong'
+            }`}
+          >
+            <History className="w-5 h-5" />
+            <span className="text-sm font-medium">سجل العمليات</span>
           </Link>
 
           {/* Settings */}

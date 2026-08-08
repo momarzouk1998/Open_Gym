@@ -381,10 +381,28 @@ export default function SettingsPage() {
           <div>
             <h3 className="font-cairo font-bold text-lg">الباقة والإضافات</h3>
             <p className="text-xs text-faint">
-              غيّر باقتك أو فعّل/ألغِ الإضافات الإضافية
+              {gymData?.status === 'trial'
+                ? 'جرّب كل الإضافات مجاناً خلال التجربة'
+                : 'لتغيير الباقة أو الإضافات تواصل معنا مباشرة'}
             </p>
           </div>
         </div>
+
+        {/* Non-trial locked notice */}
+        {gymData && gymData.status !== 'trial' && (
+          <div className="p-4 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-sm text-[#F59E0B] flex items-start gap-3">
+            <span className="text-lg leading-none mt-0.5">🔒</span>
+            <div>
+              <p className="font-semibold mb-1">التغيير يتم بالتنسيق معنا</p>
+              <p className="text-xs text-[#F59E0B]/80">
+                بعد انتهاء فترة التجربة، أي تغيير في الباقة أو الإضافات يتم عن طريق التواصل المباشر
+                على{' '}
+                <span className="font-bold" dir="ltr">01558282760</span>
+                {' '}(انستاباي / فودافون كاش)
+              </p>
+            </div>
+          </div>
+        )}
 
         {planError && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -399,7 +417,7 @@ export default function SettingsPage() {
         )}
 
         {/* Plan picker */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid grid-cols-2 gap-3 ${gymData?.status !== 'trial' ? 'opacity-50 pointer-events-none' : ''}`}>
           {PLANS.map((plan) => {
             const active = selectedPrice === plan.price
             return (
@@ -425,7 +443,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Addons */}
-        <div>
+        <div className={gymData?.status !== 'trial' ? 'opacity-50 pointer-events-none' : ''}>
           <p className="text-sm font-medium mb-3 text-soft">الإضافات</p>
           <div className="space-y-2">
             {Object.values(ADDONS).map((addon) => {
@@ -499,14 +517,16 @@ export default function SettingsPage() {
 
         <button
           type="submit"
-          disabled={addonsSaving}
-          className="w-full py-3.5 bg-[#22C55E] text-white rounded-xl font-semibold hover:bg-[#16A34A] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          disabled={addonsSaving || gymData?.status !== 'trial'}
+          className="w-full py-3.5 bg-[#22C55E] text-white rounded-xl font-semibold hover:bg-[#16A34A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           {addonsSaving ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
               جاري الحفظ...
             </>
+          ) : gymData?.status !== 'trial' ? (
+            'التواصل مطلوب لتغيير الباقة'
           ) : (
             'حفظ الباقة والإضافات'
           )}

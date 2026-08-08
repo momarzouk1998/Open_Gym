@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { getExpenses } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 
 // GET /api/gyms/[gymSlug]/expenses?search=&category=&page=
 export async function GET(
@@ -56,6 +57,11 @@ export async function POST(
       branchId: branchId || null,
       createdBy: userId || null,
     },
+  })
+
+  void auditFromRequest(request, gym.id, userId, 'expense.create', 'expense', expense.id, {
+    category: expense.category,
+    amount: expense.amount,
   })
 
   return NextResponse.json({ success: true, expense }, { status: 201 })

@@ -8,7 +8,6 @@ import {
   Sparkles,
   ArrowLeft,
   ShieldCheck,
-  CreditCard,
 } from 'lucide-react'
 import { PLANS } from '@/lib/billing'
 
@@ -38,7 +37,6 @@ const trialHighlights = [
 
 export function Pricing() {
   const starter = PLANS.starter
-  const pro = PLANS.pro
 
   return (
     <section id="pricing" className="py-24 relative overflow-hidden">
@@ -173,80 +171,6 @@ export function Pricing() {
           </div>
         </motion.div>
 
-        {/* Plans comparison — smaller, "after trial" framing */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-50px' }}
-          transition={{ delay: 0.2 }}
-          className="mt-16"
-        >
-          <div className="text-center mb-8">
-            <h3 className="font-cairo font-bold text-2xl mb-2">
-              بعد التجربة — اختار اللي يناسبك
-            </h3>
-            <p className="text-muted-c text-sm">
-              تقدر تبدأ بـ Starter وترقّع لـ Pro أي وقت، أو تضيف مميزات منفصلة
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-5 max-w-3xl mx-auto">
-            {/* Starter */}
-            <div className="glass-card rounded-2xl p-6 hover:border-[#22C55E]/30 transition-colors">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-cairo font-bold text-xl">{starter.name}</h4>
-                <span className="text-xs px-2 py-1 rounded-full bg-[#22C55E]/10 text-[#4ADE80] font-medium">
-                  الافتراضي
-                </span>
-              </div>
-              <div className="flex items-end gap-1.5 mb-4">
-                <span className="text-3xl font-bold font-cairo text-strong">
-                  {starter.price.toLocaleString('ar-EG')}
-                </span>
-                <span className="text-faint mb-1 text-sm">ج / شهر</span>
-              </div>
-              <ul className="space-y-2">
-                {starter.features.slice(0, 4).map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-soft">
-                    <Check className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Pro */}
-            <div className="glass-card rounded-2xl p-6 hover:border-[#22C55E]/30 transition-colors relative">
-              <div className="absolute -top-3 right-6 px-3 py-1 bg-[#22C55E] rounded-full text-xs font-bold text-white flex items-center gap-1">
-                <Sparkles className="w-3 h-3" />
-                للنمو
-              </div>
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-cairo font-bold text-xl">{pro.name}</h4>
-              </div>
-              <div className="flex items-end gap-1.5 mb-4">
-                <span className="text-3xl font-bold font-cairo text-strong">
-                  {pro.price.toLocaleString('ar-EG')}
-                </span>
-                <span className="text-faint mb-1 text-sm">ج / شهر</span>
-              </div>
-              <ul className="space-y-2">
-                {pro.features.slice(0, 4).map((f, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-soft">
-                    <Check className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          {/* Payment note */}
-          <div className="flex items-center justify-center gap-2 mt-8 text-sm text-faint">
-            <CreditCard className="w-4 h-4" />
-            <span>طرق دفع: انستاباي • فودافون كاش</span>
-          </div>
-        </motion.div>
       </div>
     </section>
   )

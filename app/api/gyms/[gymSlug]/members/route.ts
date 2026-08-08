@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { getMembers, generateMemberNumber } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 import type { GenderType } from '@prisma/client'
 
 // GET /api/gyms/[gymSlug]/members?search=&status=&page=
@@ -55,6 +56,12 @@ export async function POST(
       gender: (gender as GenderType) || null,
       notes: notes || null,
     },
+  })
+
+  // Audit
+  await auditFromRequest(request, gym.id, userId, 'member.create', 'member', member.id, {
+    name: member.fullName,
+    memberNumber: member.memberNumber,
   })
 
   return NextResponse.json({ success: true, member }, { status: 201 })

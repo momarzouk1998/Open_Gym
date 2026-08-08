@@ -17,9 +17,13 @@ export async function GET(
   const { searchParams } = new URL(request.url)
   const months = parseInt(searchParams.get('months') || '6')
 
+  // Skip revenue chart DB queries during trial — the chart is hidden in the UI anyway.
+  // This saves 6 payment aggregate queries per dashboard load for trial gyms.
+  const isTrial = gym.status === 'trial'
+
   const [stats, revenueChart, expiringSoon] = await Promise.all([
     getDashboardStats(gym.id),
-    getRevenueChart(gym.id, months),
+    isTrial ? Promise.resolve([]) : getRevenueChart(gym.id, months),
     getExpiringSubscriptions(gym.id, 7),
   ])
 

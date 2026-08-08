@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useGymStore } from '@/store/gym-store'
 import { formatDate, formatCurrency } from '@/lib/utils'
+import { ListPageSkeleton } from '@/components/ui/Skeleton'
 import {
   Receipt,
   Plus,
@@ -137,6 +138,10 @@ export default function ExpensesPage() {
     } catch (err) {
       console.error(err)
     }
+  }
+
+  if (loading && expenses.length === 0) {
+    return <ListPageSkeleton />
   }
 
   return (

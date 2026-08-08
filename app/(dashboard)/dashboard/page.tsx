@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Plus,
   TrendingUp,
-  Loader2,
+  RefreshCcw,
+  Receipt,
 } from 'lucide-react'
 import {
   BarChart,
@@ -21,6 +22,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { StatCardsSkeleton, DashboardChartSkeleton } from '@/components/ui/Skeleton'
 
 interface DashboardStats {
   totalMembers: number
@@ -42,12 +44,6 @@ interface DashboardData {
   expiringSoon: ExpiringSub[]
 }
 
-const statusColors: Record<string, string> = {
-  active: 'bg-[#22C55E]',
-  trial: 'bg-[#F59E0B]',
-  suspended: 'bg-[#EF4444]',
-  cancelled: 'bg-[#64748B]',
-}
 
 export default function DashboardHome() {
   const { gym, user } = useGymStore()
@@ -80,10 +76,32 @@ export default function DashboardHome() {
         </Link>
       </div>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { href: '/dashboard/members/new', icon: Users,      label: 'عضو جديد',      color: 'text-[#22C55E]', bg: 'bg-[#22C55E]/10' },
+          { href: '/dashboard/subscriptions', icon: RefreshCcw, label: 'تجديد اشتراك', color: 'text-[#4ADE80]', bg: 'bg-[#4ADE80]/10' },
+          { href: '/dashboard/payments',     icon: Wallet,     label: 'استلام دفعة',   color: 'text-[#3B82F6]', bg: 'bg-[#3B82F6]/10' },
+          { href: '/dashboard/expenses',     icon: Receipt,    label: 'تسجيل مصروف',  color: 'text-[#F59E0B]', bg: 'bg-[#F59E0B]/10' },
+        ].map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className="glass-card p-4 rounded-2xl flex flex-col items-center gap-2 hover:border-white/10 hover:scale-[1.02] transition-all active:scale-[0.98]"
+          >
+            <div className={`w-10 h-10 rounded-xl ${action.bg} flex items-center justify-center`}>
+              <action.icon className={`w-5 h-5 ${action.color}`} />
+            </div>
+            <span className="text-xs font-medium text-soft text-center">{action.label}</span>
+          </Link>
+        ))}
+      </div>
+
       {loading && !data ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-[#22C55E]" />
-        </div>
+        <>
+          <StatCardsSkeleton />
+          <DashboardChartSkeleton />
+        </>
       ) : (
         <>
           {/* Stats */}

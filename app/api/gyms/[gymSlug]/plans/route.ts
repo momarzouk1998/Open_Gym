@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { getGymPlans } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 
 // GET /api/gyms/[gymSlug]/plans
 export async function GET(
@@ -29,7 +30,7 @@ export async function POST(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym, role } = ctxResult.ctx
+  const { gym, role, userId } = ctxResult.ctx
 
   // Only owner/manager can create plans
   if (role === 'cashier' || role === 'trainer') {
@@ -50,6 +51,12 @@ export async function POST(
       duration: parseInt(duration),
       price: parseFloat(price),
     },
+  })
+
+  void auditFromRequest(request, gym.id, userId, 'plan.create', 'gymPlan', plan.id, {
+    name: plan.name,
+    duration: plan.duration,
+    price: plan.price,
   })
 
   return NextResponse.json({ success: true, plan }, { status: 201 })

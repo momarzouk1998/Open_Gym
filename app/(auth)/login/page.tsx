@@ -28,14 +28,29 @@ export default function LoginPage() {
       })
 
       if (result?.error) {
-        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
-      } else if (result?.ok) {
-        // Fetch session to determine role
-        const res = await fetch('/api/auth/session')
-        const session = await res.json()
-        if (session?.user?.role === 'super_admin') {
-          router.push('/admin')
+        // result.error may contain the rate-limit message thrown from authorize()
+        if (result.error.includes('محاولات كثيرة')) {
+          setError(result.error)
         } else {
+          setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
+        }
+      } else if (result?.ok) {
+        // Use /api/auth/me which is the canonical source of role data in this app.
+        // Falls back to /dashboard if the request fails (safe default for gym owners).
+        try {
+          const res = await fetch('/api/auth/me')
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.user?.role === 'super_admin') {
+              router.push('/admin')
+            } else {
+              router.push('/dashboard')
+            }
+          } else {
+            router.push('/dashboard')
+          }
+        } catch {
+          // Network error after successful login — still safe to redirect
           router.push('/dashboard')
         }
       } else {

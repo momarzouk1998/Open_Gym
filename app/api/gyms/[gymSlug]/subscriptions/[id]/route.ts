@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 
 // PATCH /api/gyms/[gymSlug]/subscriptions/[id] — freeze/unfreeze/cancel
 export async function PATCH(
@@ -12,7 +13,7 @@ export async function PATCH(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym } = ctxResult.ctx
+  const { gym, userId } = ctxResult.ctx
 
   const body = await request.json()
   const { action } = body // 'freeze' | 'unfreeze' | 'cancel'
@@ -58,6 +59,19 @@ export async function PATCH(
     where: { id },
     data: updateData,
   })
+
+  const auditActionMap: Record<string, any> = {
+    freeze: 'subscription.freeze',
+    unfreeze: 'subscription.unfreeze',
+    cancel: 'subscription.cancel',
+  }
+
+  if (auditActionMap[action]) {
+    void auditFromRequest(request, gym.id, userId, auditActionMap[action], 'subscription', updated.id, {
+      memberId: updated.memberId,
+      status: updated.status,
+    })
+  }
 
   return NextResponse.json({ success: true, subscription: updated })
 }

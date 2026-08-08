@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useGymStore } from '@/store/gym-store'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { ListPageSkeleton } from '@/components/ui/Skeleton'
 import {
   Wallet,
   Search,
@@ -102,6 +103,10 @@ export default function PaymentsPage() {
     { label: 'معلّق', value: formatCurrency(stats.pending), color: 'text-[#F59E0B]' },
     { label: 'إجمالي العمليات', value: String(total), color: 'text-muted-c' },
   ]
+
+  if (loading && payments.length === 0) {
+    return <ListPageSkeleton />
+  }
 
   return (
     <div className="space-y-6">

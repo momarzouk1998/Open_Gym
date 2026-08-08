@@ -59,3 +59,44 @@ export function renewalReminderMessage(
 ): string {
   return `أهلاً ${memberName} 👋\nعنوانك في الجيم: خطة "${planName}" بتاعك ${endDate}.\nتفضّل تجدّد اشتراكك عشان تكمل تمارينك؟ 💪`
 }
+
+/**
+ * Converts an array of objects to a CSV string and triggers a browser download.
+ * No external dependencies — pure browser APIs.
+ *
+ * @param rows     Array of objects (all keys used as headers)
+ * @param filename Desired file name (without extension)
+ */
+export function exportToCsv<T extends Record<string, unknown>>(
+  rows: T[],
+  filename: string
+): void {
+  if (!rows.length) return
+
+  const headers = Object.keys(rows[0])
+  const escape = (val: unknown): string => {
+    const str = String(val ?? '')
+    // Wrap in quotes if the value contains comma, newline, or double-quote
+    if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
+  const csvLines = [
+    headers.join(','),
+    ...rows.map((row) => headers.map((h) => escape(row[h])).join(',')),
+  ]
+
+  const bom = '\uFEFF' // UTF-8 BOM so Excel opens Arabic correctly
+  const blob = new Blob([bom + csvLines.join('\r\n')], {
+    type: 'text/csv;charset=utf-8;',
+  })
+
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${filename}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}

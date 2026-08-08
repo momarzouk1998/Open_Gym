@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 
 // GET /api/gyms/[gymSlug]/expenses/[id]
 export async function GET(
@@ -67,7 +68,7 @@ export async function DELETE(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym } = ctxResult.ctx
+  const { gym, userId } = ctxResult.ctx
 
   const existing = await prisma.expense.findFirst({ where: { id, gymId: gym.id } })
   if (!existing) {
@@ -75,6 +76,11 @@ export async function DELETE(
   }
 
   await prisma.expense.delete({ where: { id } })
+
+  void auditFromRequest(request, gym.id, userId, 'expense.delete', 'expense', existing.id, {
+    category: existing.category,
+    amount: existing.amount,
+  })
 
   return NextResponse.json({ success: true })
 }

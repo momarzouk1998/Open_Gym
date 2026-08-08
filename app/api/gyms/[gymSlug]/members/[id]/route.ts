@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { getMember } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 
 // GET /api/gyms/[gymSlug]/members/[id]
 export async function GET(
@@ -32,7 +33,7 @@ export async function PATCH(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym } = ctxResult.ctx
+  const { gym, userId } = ctxResult.ctx
 
   const body = await request.json()
 
@@ -55,6 +56,11 @@ export async function PATCH(
     },
   })
 
+  void auditFromRequest(request, gym.id, userId, 'member.update', 'member', member.id, {
+    name: member.fullName,
+    phone: member.phone,
+  })
+
   return NextResponse.json({ success: true, member })
 }
 
@@ -68,7 +74,7 @@ export async function DELETE(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym } = ctxResult.ctx
+  const { gym, userId } = ctxResult.ctx
 
   // Soft delete — just deactivate, never destroy data
   const existing = await prisma.member.findFirst({ where: { id, gymId: gym.id } })
@@ -79,6 +85,10 @@ export async function DELETE(
   await prisma.member.update({
     where: { id },
     data: { isActive: false },
+  })
+
+  void auditFromRequest(request, gym.id, userId, 'member.delete', 'member', existing.id, {
+    name: existing.fullName,
   })
 
   return NextResponse.json({ success: true })

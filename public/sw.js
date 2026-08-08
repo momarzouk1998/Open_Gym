@@ -1,328 +1,160 @@
-/* OpenGym Service Worker — advanced PWA
- * Strategies:
- *   - App shell (HTML/JS/CSS): stale-while-revalidate
- *   - Static assets (images/fonts): cache-first
- *   - API (GET): network-first with offline fallback
- *   - API (POST/PUT/DELETE): network with background sync queue
- */
-const SW_VERSION = 'v1.1.0';
-const STATIC_CACHE = `opengym-static-${SW_VERSION}`;
-const RUNTIME_CACHE = `opengym-runtime`;
-// Maximum entries in runtime cache (prevents unbounded growth)
-const RUNTIME_CACHE_MAX = 100;
-const APP_SHELL = [
+// OpenGym Service Worker
+// Strategy: Cache-First for static assets, Network-First for API/pages
+
+const CACHE_NAME = 'opengym-v1'
+const OFFLINE_URL = '/offline'
+
+// Static assets to pre-cache on install
+const PRECACHE_URLS = [
   '/',
-  '/dashboard',
-  '/login',
+  '/offline',
   '/manifest.json',
-  '/icon.svg',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-];
+]
 
-// Background sync queue for failed mutations
-const SYNC_QUEUE = 'opengym-sync-queue';
-let syncDB = null;
-
-// ---- IndexedDB for sync queue ----
-function openSyncDB() {
-  return new Promise((resolve, reject) => {
-    if (syncDB) return resolve(syncDB);
-    const req = indexedDB.open('opengym-sw', 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains('queue')) {
-        db.createObjectStore('queue', { keyPath: 'id', autoIncrement: true });
-      }
-    };
-    req.onsuccess = () => {
-      syncDB = req.result;
-      resolve(syncDB);
-    };
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function addToQueue(request) {
-  const body = await request.clone().text();
-  const entry = {
-    url: request.url,
-    method: request.method,
-    headers: Object.fromEntries(request.headers),
-    body,
-    timestamp: Date.now(),
-  };
-  const db = await openSyncDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('queue', 'readwrite');
-    tx.objectStore('queue').add(entry);
-    tx.oncomplete = resolve;
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function getQueue() {
-  const db = await openSyncDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('queue', 'readonly');
-    const req = tx.objectStore('queue').getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function removeFromQueue(id) {
-  const db = await openSyncDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('queue', 'readwrite');
-    tx.objectStore('queue').delete(id);
-    tx.oncomplete = resolve;
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-// ---- Install: pre-cache app shell ----
+// ─── Install: pre-cache critical assets ───────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
-      .open(STATIC_CACHE)
-      .then((cache) => cache.addAll(APP_SHELL))
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting())
-  );
-});
+  )
+})
 
-// ---- Activate: clean old caches ----
+// ─── Activate: clean up old caches ────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
-        Promise.all(
-          keys
-            .filter((k) => ![STATIC_CACHE, RUNTIME_CACHE].includes(k))
-            .map((k) => caches.delete(k))
-        )
+        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
-  );
-});
+  )
+})
 
-// ---- Helper: trim runtime cache to max entries (LRU-ish) ----
-async function trimRuntimeCache(cache) {
-  const keys = await cache.keys();
-  if (keys.length > RUNTIME_CACHE_MAX) {
-    // Delete oldest entries beyond limit
-    const toDelete = keys.slice(0, keys.length - RUNTIME_CACHE_MAX);
-    await Promise.all(toDelete.map((req) => cache.delete(req)));
-  }
-}
-
-// ---- Helper: cache strategies ----
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(RUNTIME_CACHE);
-  const cached = await cache.match(request);
-  const fetchPromise = fetch(request)
-    .then((response) => {
-      if (response && response.status === 200) {
-        cache.put(request, response.clone());
-        trimRuntimeCache(cache);
-      }
-      return response;
-    })
-    .catch(() => cached);
-  return cached || fetchPromise;
-}
-
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
-  const response = await fetch(request);
-  if (response && response.status === 200) {
-    const cache = await caches.open(RUNTIME_CACHE);
-    cache.put(request, response.clone());
-    trimRuntimeCache(cache);
-  }
-  return response;
-}
-
-async function networkFirst(request) {
-  const cache = await caches.open(RUNTIME_CACHE);
-  try {
-    const response = await fetch(request);
-    if (response && response.status === 200) {
-      cache.put(request, response.clone());
-      trimRuntimeCache(cache);
-    }
-    return response;
-  } catch (err) {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    // Offline fallback page for navigation requests
-    if (request.mode === 'navigate') {
-      return caches.match('/offline');
-    }
-    throw err;
-  }
-}
-
-// ---- Fetch handler ----
+// ─── Fetch: routing strategy ──────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+  const { request } = event
+  const url = new URL(request.url)
 
-  // Skip non-GET for static assets, cross-origin, chrome-extension
-  if (url.origin !== self.location.origin) return;
+  // Skip non-GET and cross-origin requests
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return
 
-  // Navigation requests → network-first (with offline fallback)
-  if (request.mode === 'navigate') {
-    event.respondWith(networkFirst(request));
-    return;
-  }
+  // API routes — Network-only (never cache sensitive data)
+  if (url.pathname.startsWith('/api/')) return
 
-  // API requests
-  if (url.pathname.startsWith('/api/')) {
-    // Non-GET mutations → queue for background sync
-    if (request.method !== 'GET') {
-      event.respondWith(
-        (async () => {
-          try {
-            return await fetch(request);
-          } catch (err) {
-            await addToQueue(request);
-            await self.registration.sync.register(SYNC_QUEUE);
-            return new Response(
-              JSON.stringify({
-                error: 'أنت غير متصل — سيتم المزامنة عند عودة الاتصال',
-                queued: true,
-              }),
-              {
-                status: 202,
-                headers: { 'Content-Type': 'application/json' },
-              }
-            );
-          }
-        })()
-      );
-      return;
-    }
-    // GET API → network-first
-    event.respondWith(networkFirst(request));
-    return;
-  }
-
-  // Static assets (images, fonts, svg, png) → cache-first
-  if (
-    request.destination === 'image' ||
-    request.destination === 'font' ||
-    /\.(?:png|jpg|jpeg|svg|gif|webp|woff2?|ttf)$/i.test(url.pathname)
-  ) {
-    event.respondWith(cacheFirst(request));
-    return;
-  }
-
-  // Default: stale-while-revalidate (JS, CSS, etc.)
-  if (request.method === 'GET') {
-    event.respondWith(staleWhileRevalidate(request));
-  }
-});
-
-// ---- Background sync: replay queued mutations ----
-self.addEventListener('sync', (event) => {
-  if (event.tag === SYNC_QUEUE) {
-    event.waitUntil(replayQueue());
-  }
-});
-
-async function replayQueue() {
-  const queue = await getQueue();
-  for (const item of queue) {
-    try {
-      const response = await fetch(item.url, {
-        method: item.method,
-        headers: item.headers,
-        body: item.body,
-      });
-      if (response.ok) {
-        await removeFromQueue(item.id);
-      }
-    } catch (err) {
-      // Will retry on next sync
-      break;
-    }
-  }
-}
-
-// ---- Periodic sync: refresh data caches ----
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'opengym-refresh') {
-    event.waitUntil(refreshCaches());
-  }
-});
-
-async function refreshCaches() {
-  const cache = await caches.open(RUNTIME_CACHE);
-  const keys = await cache.keys();
-  // Only refresh API GET responses (skip static assets that rarely change)
-  const apiKeys = keys.filter((req) => new URL(req.url).pathname.startsWith('/api/'));
-  // Process in batches of 10 to avoid thundering herd
-  const BATCH = 10;
-  for (let i = 0; i < apiKeys.length; i += BATCH) {
-    const batch = apiKeys.slice(i, i + BATCH);
-    await Promise.allSettled(
-      batch.map((req) =>
-        fetch(req).then((res) => {
-          if (res && res.ok) cache.put(req, res.clone());
-        })
+  // _next/static assets — Cache-first (hashed filenames = safe to cache forever)
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request).then((res) => {
+            const clone = res.clone()
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+            return res
+          })
       )
-    );
+    )
+    return
   }
-}
 
-// ---- Push notifications ----
-self.addEventListener('push', (event) => {
-  let data = { title: 'OpenGym', body: 'إشعار جديد' };
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch {
-      data.body = event.data.text();
-    }
+  // Images & icons — Cache-first with network fallback
+  if (
+    url.pathname.startsWith('/icons/') ||
+    url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico)$/)
+  ) {
+    event.respondWith(
+      caches.match(request).then(
+        (cached) =>
+          cached ||
+          fetch(request)
+            .then((res) => {
+              const clone = res.clone()
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+              return res
+            })
+            .catch(() => new Response('', { status: 404 }))
+      )
+    )
+    return
   }
+
+  // HTML pages — Network-first, fallback to cache, then offline page
+  event.respondWith(
+    fetch(request)
+      .then((res) => {
+        // Cache successful page responses
+        if (res.ok) {
+          const clone = res.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
+        }
+        return res
+      })
+      .catch(() =>
+        caches
+          .match(request)
+          .then((cached) => cached || caches.match(OFFLINE_URL))
+      )
+  )
+})
+
+// ─── Push notifications ────────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  if (!event.data) return
+
+  let payload
+  try {
+    payload = event.data.json()
+  } catch {
+    payload = { title: 'OpenGym', body: event.data.text() }
+  }
+
   const options = {
-    body: data.body,
+    body: payload.body || '',
     icon: '/icons/icon-192.png',
-    badge: '/icons/maskable-192.png',
-    vibrate: [100, 50, 100],
-    data: { url: data.url || '/dashboard' },
+    badge: '/icons/icon-192.png',
     dir: 'rtl',
     lang: 'ar',
-    requireInteraction: data.urgent || false,
-    actions: data.actions || [],
-  };
-  event.waitUntil(self.registration.showNotification(data.title, options));
-});
+    data: { url: payload.url || '/dashboard' },
+    actions: payload.actions || [],
+    tag: payload.tag || 'opengym-notification',
+    renotify: true,
+  }
 
-// ---- Notification click ----
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const targetUrl = event.notification.data?.url || '/dashboard';
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      // Focus existing tab if open
-      for (const client of clientList) {
+    self.registration.showNotification(payload.title || 'OpenGym', options)
+  )
+})
+
+// ─── Notification click ────────────────────────────────────────────────────────
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+
+  const targetUrl = event.notification.data?.url || '/dashboard'
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      // Focus existing window if open
+      for (const client of clients) {
         if (client.url.includes(targetUrl) && 'focus' in client) {
-          return client.focus();
+          return client.focus()
         }
       }
-      // Open new tab
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+      // Otherwise open new window
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl)
+      }
     })
-  );
-});
+  )
+})
 
-// ---- Message handler (for skipWaiting from page) ----
+// ─── Message from client (e.g. SKIP_WAITING from PWARegister) ─────────────────
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
   }
-});
+})

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { prisma } from '@/lib/prisma'
+import { auditFromRequest } from '@/lib/audit'
 
 // GET /api/gyms/[gymSlug] — get gym details + plans
 export async function GET(
@@ -50,7 +51,7 @@ export async function PATCH(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym, role } = ctxResult.ctx
+  const { gym, role, userId } = ctxResult.ctx
 
   // Only owner/manager can edit gym info
   if (role === 'cashier' || role === 'trainer') {
@@ -69,6 +70,26 @@ export async function PATCH(
         { status: 400 }
       )
     }
+
+    // Prevent self-service plan/addon changes after the trial ends.
+    // Only super_admin can change billing config for non-trial gyms.
+    // (During trial every addon is unlocked for free — changes are safe.)
+    if (gym.status !== 'trial' && role !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'لتغيير الباقة بعد انتهاء التجربة تواصل معنا مباشرة على 01558282760' },
+        { status: 403 }
+      )
+    }
+  }
+
+  // Same guard for addons-only change (without basePlanPrice)
+  if (addons !== undefined && basePlanPrice === undefined) {
+    if (gym.status !== 'trial' && role !== 'super_admin') {
+      return NextResponse.json(
+        { error: 'لتغيير الإضافات بعد انتهاء التجربة تواصل معنا مباشرة على 01558282760' },
+        { status: 403 }
+      )
+    }
   }
 
   const updated = await prisma.gym.update({
@@ -82,6 +103,13 @@ export async function PATCH(
       ...(addons !== undefined && { addons }),
     },
     select: { id: true, name: true, slug: true, basePlanPrice: true, addons: true },
+  })
+
+  // Non-blocking audit (fire before return so it's not dead code)
+  void auditFromRequest(request, gym.id, userId, 'gym.update', 'gym', gym.id, {
+    ...(name && { name }),
+    ...(basePlanPrice !== undefined && { basePlanPrice }),
+    ...(addons !== undefined && { addons }),
   })
 
   return NextResponse.json({ success: true, gym: updated })
