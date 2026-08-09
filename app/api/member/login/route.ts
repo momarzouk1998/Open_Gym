@@ -23,8 +23,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Find member by phone (across all gyms)
-    const member = await prisma.member.findFirst({
+    // Find all active members by phone (across all gyms)
+    const members = await prisma.member.findMany({
       where: { 
         phone: phone.trim(),
         isActive: true 
@@ -42,28 +42,47 @@ export async function POST(request: Request) {
           where: { status: 'active' },
           orderBy: { endDate: 'desc' },
           take: 1,
+          include: {
+            plan: {
+              select: { name: true }
+            }
+          }
         },
       },
     })
 
-    if (!member) {
+    if (!members || members.length === 0) {
       return NextResponse.json(
         { error: 'رقم التليفون أو كلمة المرور غير صحيحة' },
         { status: 401 }
       )
     }
 
-    // Check if member has password
-    if (!member.password) {
-      return NextResponse.json(
-        { error: 'لم يتم تعيين كلمة مرور لهذا الحساب. تواصل مع صاحب الجيم' },
-        { status: 401 }
-      )
+    // Match member with valid password
+    let matchedMember = null
+    for (const m of members) {
+      let isValid = false
+      if (!m.password) {
+        if (password.trim() === '123456') {
+          isValid = true
+          // Auto-hash default password for older member
+          const hash = await bcrypt.hash('123456', 12)
+          await prisma.member.update({
+            where: { id: m.id },
+            data: { password: hash },
+          })
+        }
+      } else {
+        isValid = await bcrypt.compare(password.trim(), m.password)
+      }
+
+      if (isValid) {
+        matchedMember = m
+        break
+      }
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, member.password)
-    if (!isValidPassword) {
+    if (!matchedMember) {
       return NextResponse.json(
         { error: 'رقم التليفون أو كلمة المرور غير صحيحة' },
         { status: 401 }
@@ -71,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     // Return member data (without password)
-    const { password: _, ...memberData } = member
+    const { password: _, ...memberData } = matchedMember
 
     return NextResponse.json({
       success: true,

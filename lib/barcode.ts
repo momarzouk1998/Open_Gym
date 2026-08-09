@@ -14,9 +14,8 @@ export function generateBarcode(): string {
  * Format: GYMLOC-{gym_name}-{random}
  */
 export function generateGymBarcode(gymName: string): string {
-  const gymPrefix = gymName.substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, '')
   const random = Math.random().toString(36).substring(2, 8).toUpperCase()
-  return `GYMLOC-${gymPrefix}-${random}`
+  return `GYMLOC-${random}`
 }
 
 /**
@@ -24,21 +23,22 @@ export function generateGymBarcode(gymName: string): string {
  */
 export function generateAttendanceUrl(gymSlug: string, baseUrl: string = ''): string {
   const url = baseUrl || process.env.NEXT_PUBLIC_APP_URL || 'https://opengym.openappo.com'
-  return `${url}/attendance/${gymSlug}`
+  const encodedSlug = encodeURIComponent(gymSlug)
+  return `${url}/attendance/${encodedSlug}`
 }
 
 /**
  * Validate barcode format
  */
 export function isValidBarcode(barcode: string): boolean {
-  return /^GYM-[A-Z0-9]+-[A-Z0-9]{4}$/.test(barcode)
+  return /^GYM-[A-Z0-9-]+$/.test(barcode)
 }
 
 /**
  * Validate gym barcode format
  */
 export function isValidGymBarcode(barcode: string): boolean {
-  return /^GYMLOC-[A-Z0-9]+-[A-Z0-9]{6}$/.test(barcode)
+  return /^GYMLOC-[A-Z0-9-]+$/.test(barcode)
 }
 
 /**

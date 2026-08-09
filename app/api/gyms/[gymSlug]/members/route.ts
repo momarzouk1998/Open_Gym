@@ -60,6 +60,21 @@ export async function POST(
     )
   }
 
+  // Check if member with same phone already exists in this gym
+  const existingMember = await prisma.member.findFirst({
+    where: {
+      gymId: gym.id,
+      phone: phone.trim(),
+    },
+  })
+
+  if (existingMember) {
+    return NextResponse.json(
+      { error: 'عضو آخر مسجل بالفعل برقم الهاتف هذا في هذا الجيم' },
+      { status: 400 }
+    )
+  }
+
   // Hash password if provided, otherwise use default password
   let hashedPassword = null
   const passwordToUse = (password && password.trim()) ? password.trim() : '123456'

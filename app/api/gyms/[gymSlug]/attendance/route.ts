@@ -144,6 +144,12 @@ export async function GET(
             fullName: true,
             memberNumber: true,
             phone: true,
+            subscriptions: {
+              where: { status: 'active' },
+              orderBy: { endDate: 'desc' },
+              take: 1,
+              select: { endDate: true },
+            },
           },
         },
         branch: {

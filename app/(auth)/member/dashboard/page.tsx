@@ -91,8 +91,7 @@ export default function MemberDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          memberId: member.id,
-          memberBarcode: member.barcode,
+          barcode: member.barcode,
         }),
       })
 

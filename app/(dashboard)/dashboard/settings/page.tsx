@@ -210,7 +210,7 @@ export default function SettingsPage() {
   const handlePrintBarcode = () => {
     if (!gymData?.gymBarcode || !gymData?.slug) return
     
-    const attendanceUrl = `${window.location.origin}/attendance/${gymData.slug}`
+    const attendanceUrl = `${window.location.origin}/attendance/${encodeURIComponent(gymData.slug)}`
     
     // Create a simple print window with the barcode and QR code
     const printWindow = window.open('', '_blank')
@@ -341,7 +341,7 @@ export default function SettingsPage() {
 
   const handleCopyAttendanceUrl = () => {
     if (!gymData?.slug) return
-    const attendanceUrl = `${window.location.origin}/attendance/${gymData.slug}`
+    const attendanceUrl = `${window.location.origin}/attendance/${encodeURIComponent(gymData.slug)}`
     navigator.clipboard.writeText(attendanceUrl)
     setBarcodeMessage('تم نسخ رابط الحضور')
     setTimeout(() => setBarcodeMessage(''), 3000)

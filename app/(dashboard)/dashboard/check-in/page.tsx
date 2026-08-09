@@ -12,8 +12,9 @@ interface AttendanceRecord {
     fullName: string
     memberNumber: string
     phone: string | null
+    subscriptions?: Array<{ endDate: string }>
   }
-  subscription: {
+  subscription?: {
     endDate: string
   }
 }
@@ -242,7 +243,13 @@ export default function CheckInPage() {
                     })}
                   </p>
                   <p className="text-xs text-muted-c">
-                    ينتهي: {new Date(record.subscription.endDate).toLocaleDateString('ar-EG')}
+                    {record.member?.subscriptions?.[0]?.endDate ? (
+                      `ينتهي: ${new Date(record.member.subscriptions[0].endDate).toLocaleDateString('ar-EG')}`
+                    ) : record.subscription?.endDate ? (
+                      `ينتهي: ${new Date(record.subscription.endDate).toLocaleDateString('ar-EG')}`
+                    ) : (
+                      'عضو'
+                    )}
                   </p>
                 </div>
               </div>

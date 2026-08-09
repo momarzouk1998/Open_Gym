@@ -63,12 +63,11 @@ export default function AttendancePage() {
       setGymName(loginData.member.gym.name)
 
       // Record attendance
-      const attendanceRes = await fetch(`/api/gyms/${gymSlug}/attendance`, {
+      const attendanceRes = await fetch(`/api/gyms/${encodeURIComponent(gymSlug)}/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memberId: loginData.member.id,
-          memberBarcode: loginData.member.barcode,
+          barcode: loginData.member.barcode,
         }),
       })
 
