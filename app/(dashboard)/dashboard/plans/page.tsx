@@ -164,7 +164,7 @@ export default function PlansPage() {
                   <span className="text-sm text-faint font-normal"> ج/شهر</span>
                 </div>
                 <ul className="space-y-2">
-                  {plan.features.map((feature, i) => (
+                  {plan.includes.map((feature, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-soft">
                       <Check className="w-4 h-4 text-[#22C55E] flex-shrink-0" />
                       {feature}
