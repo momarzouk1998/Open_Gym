@@ -322,7 +322,7 @@ export default function RegisterPage() {
               </div>
 
               <p className="text-center mt-4 text-xs text-faint">
-                🎁 تجربة مجانية 14 يوم — استمتع بكل المميزات بدون دفع
+                🎁 تجربة مجانية 7 أيام — استمتع بكل المميزات بدون دفع
               </p>
             </div>
           )}

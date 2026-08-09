@@ -1,12 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { ArrowLeft, Sparkles } from 'lucide-react'
 
 export function CTASection() {
-  const shouldReduceMotion = useReducedMotion()
-
   return (
     <section className="py-24 relative overflow-hidden">
       <motion.div
@@ -21,18 +19,6 @@ export function CTASection() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#16A34A] via-[#22C55E] to-[#16A34A]" />
           <div className="absolute inset-0 grid-bg opacity-20" />
 
-          {/* Animated decorative glows */}
-          <motion.div
-            className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 6, repeat: shouldReduceMotion ? 0 : Infinity }}
-          />
-          <motion.div
-            className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/10 rounded-full blur-3xl"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 6, repeat: shouldReduceMotion ? 0 : Infinity, delay: 2 }}
-          />
-
           <div className="relative z-10">
             <motion.div
               initial={{ scale: 0, opacity: 0 }}
@@ -41,12 +27,7 @@ export function CTASection() {
               transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm mb-6"
             >
-              <motion.div
-                animate={{ rotate: [0, 360] }}
-                transition={{ duration: 4, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'linear' }}
-              >
-                <Sparkles className="w-4 h-4 text-white" />
-              </motion.div>
+              <Sparkles className="w-4 h-4 text-white" />
               <span className="text-sm font-medium text-strong">جاهز تبدأ؟</span>
             </motion.div>
 
@@ -66,7 +47,7 @@ export function CTASection() {
               transition={{ delay: 0.4 }}
               className="text-lg text-soft mb-8 max-w-xl mx-auto"
             >
-              انضم لـ +50 جيم بيستخدموا OpenGym لإدارة أعمالهم بشكل أذكى
+              انضم لعشرات الجيمات التي تعتمد على OpenGym لإدارة أعمالها بشكل أذكى
             </motion.p>
 
             <motion.div
@@ -81,13 +62,13 @@ export function CTASection() {
                 href="/register"
                 className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#16A34A] rounded-xl font-bold hover:bg-white/95 transition-all hover:shadow-2xl"
               >
-                جرّب مجاناً 14 يوم
+                جرّب مجاناً 7 أيام
                 <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
               </Link>
             </motion.div>
 
             <p className="mt-6 text-sm text-muted-c">
-              مفيش كريدت كارد — مفيش التزام
+              بدون كريدت كارد — بدون التزام
             </p>
           </div>
         </div>

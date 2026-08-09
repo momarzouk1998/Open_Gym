@@ -100,16 +100,8 @@ export function Hero() {
       <div className="absolute inset-0 z-0 grid-bg opacity-30 pointer-events-none" />
 
       {/* Glowing atmospheric elements */}
-      <motion.div
-        className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 8, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute bottom-0 left-0 w-[250px] h-[250px] sm:w-[400px] sm:h-[400px] bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none"
-        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
-        transition={{ duration: 10, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut', delay: 1 }}
-      />
+      <div className="absolute top-0 right-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[250px] h-[250px] sm:w-[400px] sm:h-[400px] bg-[#22C55E]/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10 h-full flex flex-col justify-center">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -128,9 +120,9 @@ export function Hero() {
               whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(34,197,94,0.3)" }}
               className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/30 mb-6 backdrop-blur-md transition-shadow"
             >
-              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#22C55E] animate-pulse" />
+              <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#22C55E]" />
               <span className="text-xs sm:text-sm text-[#22C55E] font-medium">
-                المنصة الأولى لإدارة الجيمات
+                إدارة جيمك ببساطة وذكاء
               </span>
             </motion.div>
 

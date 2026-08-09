@@ -19,19 +19,22 @@ export function useGsapScroll() {
     gsap.registerPlugin(ScrollTrigger)
 
     // 1. Scroll progress bar
-    const progress = document.createElement('div')
-    progress.id = 'gsap-progress'
-    progress.style.cssText = `
-      position: fixed;
-      top: 0;
-      right: 0;
-      height: 3px;
-      width: 0%;
-      background: linear-gradient(90deg, #22C55E, #4ADE80);
-      z-index: 100;
-      box-shadow: 0 0 10px rgba(34,197,94,0.5);
-    `
-    document.body.appendChild(progress)
+    let progress = document.getElementById('gsap-progress')
+    if (!progress) {
+      progress = document.createElement('div')
+      progress.id = 'gsap-progress'
+      progress.style.cssText = `
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 3px;
+        width: 0%;
+        background: linear-gradient(90deg, #22C55E, #4ADE80);
+        z-index: 100;
+        box-shadow: 0 0 10px rgba(34,197,94,0.5);
+      `
+      document.body.appendChild(progress)
+    }
 
     const tween = gsap.to(progress, {
       width: '100%',

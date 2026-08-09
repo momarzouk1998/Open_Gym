@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Dumbbell, Mail, MessageCircle } from 'lucide-react'
+import { Dumbbell, PhoneCall, MessageCircle } from 'lucide-react'
 
 export function Footer() {
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '201558282760'
@@ -44,7 +44,7 @@ export function Footer() {
                   href="#pricing"
                   className="text-muted-c hover:text-[#22C55E] transition-colors"
                 >
-                  الأسعار
+                  التجربة المجانية
                 </Link>
               </li>
               <li>
@@ -52,7 +52,7 @@ export function Footer() {
                   href="#how"
                   className="text-muted-c hover:text-[#22C55E] transition-colors"
                 >
-                  كيف يشتغل
+                  كيف يعمل
                 </Link>
               </li>
               <li>
@@ -79,16 +79,16 @@ export function Footer() {
                 <div className="w-9 h-9 rounded-lg surface flex items-center justify-center group-hover:bg-[#22C55E]/10 transition-colors">
                   <MessageCircle className="w-4 h-4" />
                 </div>
-                <span>واتساب: تكلم معنا</span>
+                <span>واتساب: تواصل معنا فوراً</span>
               </a>
               <a
-                href="mailto:hello@openappo.com"
+                href="tel:01558282760"
                 className="flex items-center gap-3 text-muted-c hover:text-[#22C55E] transition-colors group"
               >
                 <div className="w-9 h-9 rounded-lg surface flex items-center justify-center group-hover:bg-[#22C55E]/10 transition-colors">
-                  <Mail className="w-4 h-4" />
+                  <PhoneCall className="w-4 h-4" />
                 </div>
-                <span>hello@openappo.com</span>
+                <span>01558282760</span>
               </a>
             </div>
           </div>

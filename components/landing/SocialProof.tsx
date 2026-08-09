@@ -8,21 +8,21 @@ const testimonials = [
     name: 'أحمد محمود',
     role: 'صاحب جيم القوة',
     city: 'القاهرة',
-    text: 'بعد ما بدأت أستخدم OpenGym، ربحت ساعات يومياً. كل الاشتراكات والمدفوعات في مكان واحد، والواتساب بيبعت تذكيرات تلقائياً.',
+    text: 'وفرنا أكتر من 18 ساعة أسبوعياً كانت تضيع في تسجيل المدفوعات والبحث في الكشوفات. التنبيهات المباشرة خلت نسبة تجديد الاشتراكات تزيد 25%.',
     rating: 5,
   },
   {
     name: 'محمد عبد الله',
     role: 'مدير جيم الأبطال',
     city: 'الإسكندرية',
-    text: 'أحسن استثمار عملته. التقارير خلّتني أفهم أرباحي بشكل أوضح، وادّير 3 فروع من شاشة واحدة.',
+    text: 'بنسيطر على 3 فروع عندنا بكل سهولة. التقارير المالية والتقرير المجمع بيوضح الإيرادات والمصروفات لحظة بلحظة.',
     rating: 5,
   },
   {
     name: 'خالد السيد',
     role: 'صاحب Fitness Hub',
     city: 'الجيزة',
-    text: 'النظام سهل جداً ومش محتاج خبرة تقنية. الموظفين بتوعي اتعلموه في يوم. مدفوعات الأعضاء بقت منظمة.',
+    text: 'الكاشير والموظفين اتعلموا السيستم في أول يوم. التسجيل والبحث عن الأعضاء بيتم في ثواني، ومفيش أي لغبطة في الحسابات تاني.',
     rating: 5,
   },
 ]
@@ -42,16 +42,10 @@ const cardVariants = {
 }
 
 export function SocialProof() {
-  const shouldReduceMotion = useReducedMotion()
-
   return (
     <section className="py-24 relative overflow-hidden">
       {/* Background glow */}
-      <motion.div
-        className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-[#22C55E]/5 rounded-full blur-[100px] pointer-events-none"
-        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
-        transition={{ duration: 8, repeat: shouldReduceMotion ? 0 : Infinity }}
-      />
+      <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-[#22C55E]/5 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <motion.div
@@ -62,10 +56,10 @@ export function SocialProof() {
           className="text-center mb-16"
         >
           <span className="inline-block px-4 py-1.5 rounded-full bg-[#22C55E]/10 border border-[#22C55E]/20 text-sm text-[#4ADE80] font-medium mb-4">
-            آراء عملائنا
+            آراء العملاء
           </span>
           <h2 className="font-cairo font-bold text-3xl sm:text-4xl lg:text-5xl mb-4">
-            صاحب جيم <span className="text-[#22C55E]">بيحب OpenGym</span>
+            ماذا يقول <span className="text-[#22C55E]">أصحاب الجيمات</span>
           </h2>
         </motion.div>
 
@@ -74,7 +68,7 @@ export function SocialProof() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-50px' }}
-          className="grid md:grid-cols-3 gap-6"
+          className="grid md:grid-cols-3 gap-8"
         >
           {testimonials.map((t, i) => (
             <motion.div
@@ -87,19 +81,7 @@ export function SocialProof() {
 
               <div className="flex gap-1 mb-4">
                 {Array.from({ length: t.rating }).map((_, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ scale: 0, rotate: -180 }}
-                    whileInView={{ scale: 1, rotate: 0 }}
-                    viewport={{ once: true }}
-                    transition={{
-                      delay: i * 0.1 + idx * 0.08,
-                      type: 'spring',
-                      stiffness: 200,
-                    }}
-                  >
-                    <Star className="w-4 h-4 fill-[#22C55E] text-[#22C55E]" />
-                  </motion.div>
+                  <Star key={idx} className="w-4 h-4 fill-[#22C55E] text-[#22C55E]" />
                 ))}
               </div>
 

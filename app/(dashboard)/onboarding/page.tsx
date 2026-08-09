@@ -184,7 +184,7 @@ export default function OnboardingPage() {
               أهلاً بك في {gymName} 🎉
             </h2>
             <p className="text-muted-c mb-2">
-              تجربتك المجانية لمدة <span className="text-[#22C55E] font-semibold">14 يوم</span> بدأت.
+              تجربتك المجانية لمدة <span className="text-[#22C55E] font-semibold">7 أيام</span> بدأت.
             </p>
             <p className="text-sm text-faint mb-8">
               خليني أساعدك تعمل الإعداد الأولي في دقيقتين — إضافة خطة اشتراك وأول عضو.

@@ -64,7 +64,7 @@ export function Pricing() {
           </motion.div>
 
           <h2 className="font-cairo font-bold text-3xl sm:text-4xl lg:text-5xl mb-4 leading-tight">
-            جرّب OpenGym <span className="text-[#22C55E]">14 يوم مجاناً</span>
+            جرّب OpenGym <span className="text-[#22C55E]">7 أيام مجاناً</span>
           </h2>
           <p className="text-lg text-muted-c max-w-2xl mx-auto">
             من غير كريدت كارد، من غير التزام. سجّل دلوقتي واستخدم كل المميزات —
@@ -93,10 +93,10 @@ export function Pricing() {
                   </div>
                   <div className="flex items-end gap-2">
                     <span className="text-5xl font-black font-cairo text-strong">
-                      14
+                      7
                     </span>
                     <span className="text-xl font-bold text-[#22C55E] mb-2">
-                      يوم مجاناً
+                      أيام مجاناً
                     </span>
                   </div>
                 </div>
@@ -165,7 +165,7 @@ export function Pricing() {
               </motion.div>
 
               <p className="text-center mt-4 text-xs text-faint">
-                بعد الـ 14 يوم، تقدر تختار خطتك وندفع عن طريق انستاباي أو فودافون كاش
+                بعد الـ 7 أيام، تقدر تختار خطتك وندفع عن طريق انستاباي أو فودافون كاش
               </p>
             </div>
           </div>

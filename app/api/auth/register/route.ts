@@ -79,9 +79,9 @@ export async function POST(request: Request) {
     // Default: starter plan with all addons for trial
     const basePlanPrice = 299
 
-    // Trial period: 14 days from now
+    // Trial period: 7 days from now
     const trialEndsAt = new Date()
-    trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+    trialEndsAt.setDate(trialEndsAt.getDate() + 7)
 
     // Create gym + user + profile in a transaction
     const result = await prisma.$transaction(async (tx) => {
