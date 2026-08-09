@@ -19,6 +19,7 @@ export const PLANS = {
     key: 'starter' as const,
     name: 'Starter',
     price: 399,
+    originalPrice: 449,
     description: 'مناسب للجيمات الصغيرة والمتوسطة',
     // What's included at base (no addons needed)
     includes: [
@@ -36,6 +37,7 @@ export const PLANS = {
     key: 'pro' as const,
     name: 'Pro',
     price: 699,
+    originalPrice: 849,
     description: 'كل مميزات Starter + جميع الإضافات مدمجة',
     popular: true,
     // Pro includes everything in Starter PLUS all addons

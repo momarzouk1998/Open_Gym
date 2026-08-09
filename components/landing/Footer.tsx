@@ -95,12 +95,9 @@ export function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 border-t border-app flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="pt-8 border-t border-app flex items-center justify-center">
           <p className="text-sm text-faint">
             © {new Date().getFullYear()} OpenGym — جميع الحقوق محفوظة
-          </p>
-          <p className="text-sm text-faint">
-            صُنع بـ ❤️ في مصر
           </p>
         </div>
       </div>

@@ -101,6 +101,9 @@ export function Pricing() {
                 <span className="text-4xl font-black font-cairo text-strong">
                   {PLANS.starter.price.toLocaleString('ar-EG')}
                 </span>
+                <span className="text-lg text-faint line-through font-cairo mb-1">
+                  {PLANS.starter.originalPrice.toLocaleString('ar-EG')}
+                </span>
                 <span className="text-muted-c mb-1.5 text-sm">ج / شهر</span>
               </div>
               <p className="text-xs text-faint mt-2">الإضافات اختيارية بسعر منفصل</p>
@@ -152,6 +155,9 @@ export function Pricing() {
               <div className="flex items-end gap-1.5">
                 <span className="text-4xl font-black font-cairo text-strong">
                   {PLANS.pro.price.toLocaleString('ar-EG')}
+                </span>
+                <span className="text-lg text-faint line-through font-cairo mb-1">
+                  {PLANS.pro.originalPrice.toLocaleString('ar-EG')}
                 </span>
                 <span className="text-muted-c mb-1.5 text-sm">ج / شهر</span>
               </div>
