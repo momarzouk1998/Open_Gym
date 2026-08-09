@@ -22,6 +22,7 @@ import {
   CalendarClock,
   Crown,
   History,
+  QrCode,
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { Logo } from '@/components/Logo'
@@ -33,6 +34,7 @@ interface SidebarProps {
 
 const navItems = [
   { href: '/dashboard', label: 'الرئيسية', icon: Home },
+  { href: '/dashboard/check-in', label: 'تسجيل الحضور', icon: QrCode },
   { href: '/dashboard/members', label: 'الأعضاء', icon: Users },
   { href: '/dashboard/subscriptions', label: 'الاشتراكات', icon: CreditCard },
   { href: '/dashboard/expiring', label: 'التجديدات', icon: CalendarClock },

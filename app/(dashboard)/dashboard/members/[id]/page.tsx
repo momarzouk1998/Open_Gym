@@ -18,6 +18,11 @@ import {
   Users,
   Dumbbell,
   MapPin,
+  QrCode,
+  Copy,
+  Check,
+  Lock,
+  RefreshCw,
 } from 'lucide-react'
 
 interface Subscription {
@@ -43,8 +48,10 @@ interface Payment {
 interface MemberDetail {
   id: string
   memberNumber: string | null
+  barcode: string | null
   fullName: string
   phone: string | null
+  email?: string | null
   gender: string | null
   address: string | null
   notes: string | null
@@ -79,6 +86,9 @@ export default function MemberDetailPage() {
   const [member, setMember] = useState<MemberDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+  const [resettingPassword, setResettingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState('')
 
   useEffect(() => {
     if (!initialized || !gymSlug) return
@@ -158,6 +168,38 @@ export default function MemberDetailPage() {
   const getStatusInfo = (status: string) =>
     statusConfig[status] || { label: status, color: 'text-faint bg-[#64748B]/10' }
 
+  const copyBarcode = () => {
+    if (member?.barcode) {
+      navigator.clipboard.writeText(member.barcode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleResetPassword = async () => {
+    if (!gymSlug || !member) return
+    if (!confirm('هل أنت متأكد من إعادة تعيين كلمة المرور لهذا العضو؟')) return
+    
+    setResettingPassword(true)
+    setPasswordMessage('')
+    
+    try {
+      const res = await fetch(`/api/gyms/${gymSlug}/members/${member.id}/reset-password`, {
+        method: 'POST',
+      })
+      
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل إعادة تعيين كلمة المرور')
+      
+      setPasswordMessage('تم إعادة تعيين كلمة المرور إلى 123456')
+      setTimeout(() => setPasswordMessage(''), 3000)
+    } catch (err) {
+      setPasswordMessage(err instanceof Error ? err.message : 'حدث خطأ')
+    } finally {
+      setResettingPassword(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Back link */}
@@ -212,6 +254,23 @@ export default function MemberDetailPage() {
               </a>
             )}
             <button
+              onClick={handleResetPassword}
+              disabled={resettingPassword}
+              className="inline-flex items-center gap-2 px-4 py-2 border border-app rounded-xl text-sm font-medium hover:surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {resettingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  جاري...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4 text-[#22C55E]" />
+                  إعادة كلمة المرور
+                </>
+              )}
+            </button>
+            <button
               onClick={() =>
                 router.push(`/dashboard/subscriptions?member=${member.id}`)
               }
@@ -221,10 +280,39 @@ export default function MemberDetailPage() {
               اشتراك جديد
             </button>
           </div>
+          
+          {passwordMessage && (
+            <div className={`mt-2 text-sm ${
+              passwordMessage.includes('نجاح') ? 'text-[#22C55E]' : 'text-red-400'
+            }`}>
+              {passwordMessage}
+            </div>
+          )}
         </div>
 
         {/* Quick info grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-app">
+          {member.barcode && (
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#22C55E]/10 flex items-center justify-center">
+                <QrCode className="w-4 h-4 text-[#22C55E]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-faint">الباركود</div>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-mono font-medium truncate" dir="ltr">
+                    {member.barcode}
+                  </span>
+                  <button
+                    onClick={copyBarcode}
+                    className="text-[#22C55E] hover:text-[#22C55E]/80 transition-colors flex-shrink-0"
+                  >
+                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {member.phone && (
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#22C55E]/10 flex items-center justify-center">
@@ -239,6 +327,19 @@ export default function MemberDetailPage() {
                 >
                   {member.phone}
                 </a>
+              </div>
+            </div>
+          )}
+          {member.email && (
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#22C55E]/10 flex items-center justify-center">
+                <User className="w-4 h-4 text-[#22C55E]" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs text-faint">البريد الإلكتروني</div>
+                <span className="text-sm font-medium truncate block" dir="ltr">
+                  {member.email}
+                </span>
               </div>
             </div>
           )}

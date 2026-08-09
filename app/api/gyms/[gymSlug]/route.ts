@@ -3,6 +3,7 @@ import { getGymContextApi } from '@/lib/gym-context'
 import { prisma } from '@/lib/prisma'
 import { auditFromRequest } from '@/lib/audit'
 import { VALID_PLAN_PRICES, getAddonsForPlan, getPlanByPrice } from '@/lib/billing'
+import { generateGymBarcode, isValidGymBarcode } from '@/lib/barcode'
 import type { AddonKey } from '@prisma/client'
 
 // GET /api/gyms/[gymSlug] — get gym details + plans
@@ -31,6 +32,7 @@ export async function GET(
         basePlanPrice: true,
         addons: true,
         billingCycle: true,
+        gymBarcode: true,
         createdAt: true,
       },
     }),
@@ -61,7 +63,39 @@ export async function PATCH(
   }
 
   const body = await request.json()
-  const { name, phone, city, address, basePlanPrice, addons } = body
+  const { name, phone, city, address, basePlanPrice, addons, gymBarcode } = body
+
+  // Validate gymBarcode if provided
+  if (gymBarcode !== undefined) {
+    if (!gymBarcode.trim()) {
+      return NextResponse.json(
+        { error: 'الباركود لا يمكن أن يكون فارغاً' },
+        { status: 400 }
+      )
+    }
+    
+    if (!isValidGymBarcode(gymBarcode.trim())) {
+      return NextResponse.json(
+        { error: 'تنسيق الباركود غير صالح. يجب أن يبدأ بـ GYMLOC-' },
+        { status: 400 }
+      )
+    }
+
+    // Check if barcode is already used by another gym
+    const existingGym = await prisma.gym.findFirst({
+      where: {
+        gymBarcode: gymBarcode.trim(),
+        id: { not: gym.id },
+      },
+    })
+
+    if (existingGym) {
+      return NextResponse.json(
+        { error: 'هذا الباركود مستخدم بالفعل' },
+        { status: 400 }
+      )
+    }
+  }
 
   // Validate basePlanPrice if provided — uses VALID_PLAN_PRICES from billing.ts (single source)
   if (basePlanPrice !== undefined) {
@@ -111,15 +145,17 @@ export async function PATCH(
       ...(phone !== undefined && { phone: phone || null }),
       ...(city !== undefined && { city: city || null }),
       ...(address !== undefined && { address: address || null }),
+      ...(gymBarcode !== undefined && { gymBarcode: gymBarcode.trim() }),
       ...(basePlanPrice !== undefined && { basePlanPrice }),
       ...(resolvedAddons !== undefined && { addons: resolvedAddons }),
     },
-    select: { id: true, name: true, slug: true, basePlanPrice: true, addons: true },
+    select: { id: true, name: true, slug: true, basePlanPrice: true, addons: true, gymBarcode: true },
   })
 
   // Non-blocking audit (fire before return so it's not dead code)
   void auditFromRequest(request, gym.id, userId, 'gym.update', 'gym', gym.id, {
     ...(name && { name }),
+    ...(gymBarcode !== undefined && { gymBarcode }),
     ...(basePlanPrice !== undefined && { basePlanPrice }),
     ...(addons !== undefined && { addons }),
   })

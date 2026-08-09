@@ -34,6 +34,9 @@ export type AuditAction =
   | 'branch.delete'
   | 'gym.update'
   | 'gym.plan_change'
+  | 'attendance.check_in'
+  | 'gym.barcode_regenerate'
+  | 'member.password_reset'
 
 export async function audit(
   gymId: string,

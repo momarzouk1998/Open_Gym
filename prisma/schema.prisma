@@ -68,6 +68,11 @@ enum BillingCycle {
   annual
 }
 
+enum AttendanceStatus {
+  checked_in
+  checked_out
+}
+
 // ========================================
 // GYMS
 // ========================================
@@ -92,6 +97,7 @@ model Gym {
   currency        String      @default("EGP")
   timezone        String      @default("Africa/Cairo")
   adminNotes      String?     @map("admin_notes")
+  gymBarcode      String?     @unique @map("gym_barcode")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
@@ -107,6 +113,7 @@ model Gym {
   gymInvoices   GymInvoice[]
   addonChanges  AddonChange[]
   auditLogs     AuditLog[]
+  attendance    Attendance[]
 
   @@map("gyms")
 }
@@ -130,6 +137,7 @@ model Branch {
   subscriptions Subscription[]
   expenses      Expense[]
   classes       ClassRoom[]
+  attendance    Attendance[]
 
   @@map("branches")
 }
@@ -186,7 +194,8 @@ model Member {
   branchId     String?    @map("branch_id")
   trainerId    String?    @map("trainer_id")
   fullName     String     @map("full_name")
-  phone        String?
+  phone        String     @unique
+  password     String?
   gender       GenderType?
   birthDate    DateTime?  @map("birth_date")
   photoUrl     String?    @map("photo_url")
@@ -195,6 +204,7 @@ model Member {
   isActive     Boolean    @default(true) @map("is_active")
   notes        String?
   memberNumber String?    @unique @map("member_number")
+  barcode      String?    @unique
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
@@ -204,6 +214,7 @@ model Member {
   subscriptions  Subscription[]
   payments       Payment[]
   classBookings  ClassBooking[]
+  attendance     Attendance[]
 
   @@map("members")
 }
@@ -332,6 +343,31 @@ model ClassBooking {
 
   @@unique([classId, memberId, bookedAt])
   @@map("class_bookings")
+}
+
+// ========================================
+// ATTENDANCE
+// ========================================
+model Attendance {
+  id           String           @id @default(uuid())
+  gymId        String           @map("gym_id")
+  memberId     String           @map("member_id")
+  branchId     String?          @map("branch_id")
+  barcode      String
+  checkInTime  DateTime         @default(now()) @map("check_in_time")
+  checkOutTime DateTime?        @map("check_out_time")
+  status       AttendanceStatus @default(checked_in)
+  notes        String?
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  gym    Gym     @relation(fields: [gymId], references: [id], onDelete: Cascade)
+  member Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([gymId, checkInTime(sort: Desc)])
+  @@index([memberId, checkInTime(sort: Desc)])
+  @@index([barcode])
+  @@map("attendance")
 }
 
 // ========================================

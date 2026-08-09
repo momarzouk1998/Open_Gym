@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { slugify } from '@/lib/utils'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { generateGymBarcode } from '@/lib/barcode'
 import type { AddonKey } from '@prisma/client'
 
 // All addons unlocked during 14-day trial (no extra_branch — covered by branches)
@@ -84,6 +85,9 @@ export async function POST(request: Request) {
       slug = `${slug}-${Date.now().toString(36)}`
     }
 
+    // Generate gym barcode
+    const gymBarcode = generateGymBarcode(gymName)
+
     // Default: starter plan with all addons for trial
     const basePlanPrice = 299
 
@@ -106,6 +110,7 @@ export async function POST(request: Request) {
           trialEndsAt,
           basePlanPrice,
           addons: TRIAL_ADDONS,
+          gymBarcode,
         },
       })
 

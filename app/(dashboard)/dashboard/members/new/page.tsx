@@ -20,12 +20,14 @@ export default function NewMemberPage() {
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [plans, setPlans] = useState<GymPlan[]>([])
   const [plansLoading, setPlansLoading] = useState(true)
 
   const [form, setForm] = useState({
     fullName: '',
     phone: '',
+    password: '',
     gender: '',
     notes: '',
     // subscription
@@ -78,7 +80,8 @@ export default function NewMemberPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: form.fullName,
-          phone: form.phone || undefined,
+          phone: form.phone,
+          password: form.password || undefined,
           gender: form.gender || undefined,
           notes: form.notes || undefined,
         }),
@@ -115,11 +118,23 @@ export default function NewMemberPage() {
         }
       }
 
-      // Navigate immediately — member exists in DB
-      router.push(`/dashboard/members/${memberData.member.id}`)
+      // Show success message with login info
+      setSuccess(`
+        تم إضافة العضو بنجاح!
+        
+        بيانات الدخول:
+        رقم التليفون: ${form.phone}
+        كلمة المرور: 123456
+        
+        رابط الدخول: ${window.location.origin}/member-login
+      `)
+      
+      // Navigate after showing message
+      setTimeout(() => router.push(`/dashboard/members/${memberData.member.id}`), 5000)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ'
       setError(message)
+      setSuccess('')
     } finally {
       setLoading(false)
     }
@@ -138,6 +153,12 @@ export default function NewMemberPage() {
       {error && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="p-4 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] text-sm whitespace-pre-line">
+          {success}
         </div>
       )}
 
@@ -178,6 +199,20 @@ export default function NewMemberPage() {
                 className={`${inputClass} text-left`}
                 placeholder="01012345678"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2 text-soft">
+                كلمة المرور
+              </label>
+              <input
+                type="password"
+                dir="ltr"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className={`${inputClass} text-left`}
+                placeholder="••••••••"
+              />
+              <p className="text-xs text-muted-c mt-1">6 حروف على الأقل (اختياري - الافتراضي: 123456)</p>
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 text-soft">

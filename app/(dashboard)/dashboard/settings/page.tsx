@@ -17,6 +17,10 @@ import {
   X,
   Crown,
   Info,
+  QrCode,
+  RefreshCw,
+  Download,
+  Copy,
 } from 'lucide-react'
 
 interface GymDetails {
@@ -30,6 +34,7 @@ interface GymDetails {
   basePlanPrice: number
   billingCycle: string
   addons: string[]
+  gymBarcode: string | null
   createdAt: string
 }
 
@@ -126,7 +131,9 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
-  const [form, setForm] = useState({ name: '', phone: '', city: '', address: '' })
+  const [form, setForm] = useState({ name: '', phone: '', city: '', address: '', gymBarcode: '' })
+  const [regeneratingBarcode, setRegeneratingBarcode] = useState(false)
+  const [barcodeMessage, setBarcodeMessage] = useState('')
 
   // Plan form
   const [planForm, setPlanForm] = useState({ name: '', duration: '30', price: '300' })
@@ -144,6 +151,7 @@ export default function SettingsPage() {
           phone: data.gym.phone || '',
           city: data.gym.city || '',
           address: data.gym.address || '',
+          gymBarcode: data.gym.gymBarcode || '',
         })
         setSelectedPrice(data.gym.basePlanPrice || PLANS.starter.price)
         setLoading(false)
@@ -165,6 +173,9 @@ export default function SettingsPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'فشل الحفظ')
+      setGymData((prev) =>
+        prev ? { ...prev, name: form.name, phone: form.phone, city: form.city, address: form.address, gymBarcode: form.gymBarcode } : prev
+      )
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
     } catch (err) {
@@ -172,6 +183,168 @@ export default function SettingsPage() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleRegenerateBarcode = async () => {
+    if (!gymSlug) return
+    setRegeneratingBarcode(true)
+    setBarcodeMessage('')
+    try {
+      const res = await fetch(`/api/gyms/${gymSlug}/barcode`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل توليد الباركود')
+      
+      setGymData((prev) => prev ? { ...prev, gymBarcode: data.gym.gymBarcode } : prev)
+      setForm((prev) => ({ ...prev, gymBarcode: data.gym.gymBarcode }))
+      setBarcodeMessage('تم توليد باركود جديد بنجاح')
+      setTimeout(() => setBarcodeMessage(''), 3000)
+    } catch (err) {
+      setBarcodeMessage(err instanceof Error ? err.message : 'حدث خطأ')
+    } finally {
+      setRegeneratingBarcode(false)
+    }
+  }
+
+  const handlePrintBarcode = () => {
+    if (!gymData?.gymBarcode || !gymData?.slug) return
+    
+    const attendanceUrl = `${window.location.origin}/attendance/${gymData.slug}`
+    
+    // Create a simple print window with the barcode and QR code
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>باركود الجيم - ${gymData.name}</title>
+          <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+              margin: 0;
+              padding: 20px;
+            }
+            .barcode-container {
+              border: 2px solid #22C55E;
+              padding: 40px;
+              border-radius: 10px;
+              text-align: center;
+              max-width: 400px;
+            }
+            .gym-name {
+              font-size: 24px;
+              font-weight: bold;
+              margin-bottom: 20px;
+              color: #333;
+            }
+            .barcode-label {
+              font-size: 16px;
+              margin-bottom: 10px;
+              color: #666;
+            }
+            .barcode {
+              font-size: 32px;
+              font-family: monospace;
+              font-weight: bold;
+              color: #22C55E;
+              letter-spacing: 2px;
+              margin: 20px 0;
+            }
+            .qr-section {
+              margin: 30px 0;
+              padding: 20px;
+              background: #f0f0f0;
+              border-radius: 10px;
+            }
+            .qr-label {
+              font-size: 14px;
+              margin-bottom: 10px;
+              color: #666;
+            }
+            #qrcode {
+              display: flex;
+              justify-content: center;
+              margin: 10px 0;
+            }
+            #qrcode img {
+              max-width: 200px;
+              height: auto;
+            }
+            .instructions {
+              font-size: 14px;
+              color: #888;
+              margin-top: 20px;
+            }
+            .instructions-highlight {
+              font-size: 16px;
+              font-weight: bold;
+              color: #22C55E;
+              margin-top: 10px;
+            }
+            @media print {
+              body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="barcode-container">
+            <div class="gym-name">${gymData.name}</div>
+            <div class="barcode-label">باركود الجيم</div>
+            <div class="barcode">${gymData.gymBarcode}</div>
+            
+            <div class="qr-section">
+              <div class="qr-label">أو امسح هذا الكود</div>
+              <div id="qrcode"></div>
+            </div>
+            
+            <div class="instructions">
+              امسح الباركود أو الكود لتسجيل الحضور
+            </div>
+            <div class="instructions-highlight">
+              سيعمل من أي تطبيق ماسح على هاتفك
+            </div>
+          </div>
+          <script>
+            // Generate QR code
+            const qrUrl = "${attendanceUrl}";
+            QRCode.toCanvas(document.createElement('canvas'), qrUrl, { 
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#22C55E',
+                light: '#ffffff'
+              }
+            }, function(error, canvas) {
+              if (error) {
+                console.error(error);
+                return;
+              }
+              document.getElementById('qrcode').appendChild(canvas);
+            });
+            
+            window.print();
+          </script>
+        </body>
+        </html>
+      `)
+      printWindow.document.close()
+    }
+  }
+
+  const handleCopyAttendanceUrl = () => {
+    if (!gymData?.slug) return
+    const attendanceUrl = `${window.location.origin}/attendance/${gymData.slug}`
+    navigator.clipboard.writeText(attendanceUrl)
+    setBarcodeMessage('تم نسخ رابط الحضور')
+    setTimeout(() => setBarcodeMessage(''), 3000)
   }
 
   const handleAddPlan = async (e: React.FormEvent) => {
@@ -313,6 +486,74 @@ export default function SettingsPage() {
             onChange={(e) => setForm({ ...form, address: e.target.value })}
             className={inputClass} placeholder="العنوان التفصيلي" />
         </div>
+        
+        {/* Gym Barcode Display */}
+        {gymData?.gymBarcode && (
+          <div className="bg-[#22C55E]/10 p-4 rounded-xl">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-soft">باركود الجيم (للتسجيل)</span>
+              <QrCode className="w-4 h-4 text-[#22C55E]" />
+            </div>
+            <p className="text-2xl font-mono text-strong text-center py-2" dir="ltr">
+              {gymData.gymBarcode}
+            </p>
+            <p className="text-xs text-muted-c text-center mt-2 mb-4">
+              اطبع هذا الباركود وضعه في مدخل الجيم للاستخدام في تسجيل الحضور
+            </p>
+            
+            {/* Attendance URL */}
+            <div className="bg-app/50 p-3 rounded-xl mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-soft">رابط الحضور:</span>
+                <button
+                  onClick={handleCopyAttendanceUrl}
+                  className="text-[#22C55E] hover:text-[#22C55E]/80 transition-colors flex items-center gap-1 text-xs"
+                >
+                  <Copy className="w-3 h-3" />
+                  نسخ
+                </button>
+              </div>
+              <p className="text-xs text-muted-c mt-1 truncate" dir="ltr">
+                {window.location.origin}/attendance/{gymData.slug}
+              </p>
+            </div>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={handleRegenerateBarcode}
+                disabled={regeneratingBarcode}
+                className="flex-1 py-2 bg-app border border-app text-white rounded-xl text-sm font-medium hover:surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {regeneratingBarcode ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    جاري التوليد...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    توليد جديد
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handlePrintBarcode}
+                className="flex-1 py-2 bg-[#22C55E] text-white rounded-xl text-sm font-medium hover:bg-[#22C55E]/90 transition-colors flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                طباعة
+              </button>
+            </div>
+            {barcodeMessage && (
+              <div className={`mt-3 text-center text-sm ${
+                barcodeMessage.includes('نجاح') || barcodeMessage.includes('نسخ') ? 'text-[#22C55E]' : 'text-red-400'
+              }`}>
+                {barcodeMessage}
+              </div>
+            )}
+          </div>
+        )}
+        
         <button type="submit" disabled={saving}
           className="w-full py-3 bg-[#22C55E] text-white rounded-xl font-semibold hover:bg-[#16A34A] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
           {saving ? <><Loader2 className="w-5 h-5 animate-spin" />جاري الحفظ...</> : 'حفظ التغييرات'}

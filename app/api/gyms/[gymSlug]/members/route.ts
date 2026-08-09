@@ -3,6 +3,8 @@ import { getGymContextApi } from '@/lib/gym-context'
 import { getMembers, generateMemberNumber } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 import { auditFromRequest } from '@/lib/audit'
+import { generateBarcode } from '@/lib/barcode'
+import bcrypt from 'bcryptjs'
 import type { GenderType } from '@prisma/client'
 
 // GET /api/gyms/[gymSlug]/members?search=&status=&page=
@@ -39,20 +41,45 @@ export async function POST(
   const { gym, userId } = ctxResult.ctx
 
   const body = await request.json()
-  const { fullName, phone, gender, notes } = body
+  const { fullName, phone, password, gender, notes } = body
 
   if (!fullName?.trim()) {
     return NextResponse.json({ error: 'الاسم مطلوب' }, { status: 400 })
   }
 
+  if (!phone?.trim()) {
+    return NextResponse.json({ error: 'رقم التليفون مطلوب' }, { status: 400 })
+  }
+
+  // Validate phone format
+  const phoneRegex = /^01[0-9]{9}$/
+  if (!phoneRegex.test(phone.trim())) {
+    return NextResponse.json(
+      { error: 'رقم التليفون غير صحيح — مثال: 01012345678' },
+      { status: 400 }
+    )
+  }
+
+  // Hash password if provided, otherwise use default password
+  let hashedPassword = null
+  const passwordToUse = (password && password.trim()) ? password.trim() : '123456'
+  
+  if (passwordToUse.length < 6) {
+    return NextResponse.json({ error: 'كلمة المرور لازم 6 حروف على الأقل' }, { status: 400 })
+  }
+  hashedPassword = await bcrypt.hash(passwordToUse, 12)
+
   const memberNumber = await generateMemberNumber(gym.id)
+  const barcode = generateBarcode()
 
   const member = await prisma.member.create({
     data: {
       gymId: gym.id,
       memberNumber,
+      barcode,
       fullName: fullName.trim(),
-      phone: phone || null,
+      phone: phone.trim(),
+      password: hashedPassword,
       gender: (gender as GenderType) || null,
       notes: notes || null,
     },
