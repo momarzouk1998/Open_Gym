@@ -2,7 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Phone, Lock, ArrowRight, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { Phone, Lock, ArrowLeft, Loader2 } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 
 function MemberLoginForm() {
   const router = useRouter()
@@ -54,79 +56,95 @@ function MemberLoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a]">
-      <div className="max-w-md w-full glass-card p-8 rounded-2xl">
-        <div className="text-center mb-8">
-          <h1 className="font-cairo font-bold text-2xl text-white mb-2">تسجيل دخول العضو</h1>
-          <p className="text-sm text-muted-c">أدخل رقم التليفون وكلمة المرور</p>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0a0a0a] to-[#1a1a1a] relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-[#22C55E]/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Logo */}
+        <Link href="/" className="flex items-center justify-center gap-2 mb-8">
+          <Logo variant="full" width={180} height={56} priority />
+        </Link>
+
+        <div className="glass-card p-8 rounded-2xl">
+          <div className="text-center mb-8">
+            <h1 className="font-cairo font-bold text-2xl text-white mb-2">تسجيل دخول العضو</h1>
+            <p className="text-sm text-muted-c">أدخل رقم التليفون وكلمة المرور</p>
+          </div>
+
+          {error && (
+            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-6">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-soft">
+                رقم التليفون
+              </label>
+              <div className="relative">
+                <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-faint" />
+                <input
+                  type="tel"
+                  required
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full bg-app border border-app rounded-xl py-3 px-4 pr-10 text-strong focus:outline-none focus:border-[#22C55E]/50 focus:ring-2 focus:ring-[#22C55E]/20"
+                  placeholder="01012345678"
+                  dir="ltr"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-soft">
+                كلمة المرور
+              </label>
+              <div className="relative">
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-faint" />
+                <input
+                  type="password"
+                  required
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full bg-app border border-app rounded-xl py-3 px-4 pr-10 text-strong focus:outline-none focus:border-[#22C55E]/50 focus:ring-2 focus:ring-[#22C55E]/20"
+                  placeholder="••••••••"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-[#22C55E] text-white rounded-xl font-cairo font-bold hover:bg-[#22C55E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  جاري تسجيل الدخول...
+                </>
+              ) : (
+                <>
+                  تسجيل الدخول
+                  <ArrowLeft className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-c">
+              ليس لديك حساب؟ تواصل مع صاحب الجيم
+            </p>
+          </div>
         </div>
 
-        {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm mb-6">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2 text-soft">
-              رقم التليفون
-            </label>
-            <div className="relative">
-              <Phone className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-faint" />
-              <input
-                type="tel"
-                required
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full bg-app border border-app rounded-xl py-3 px-4 pr-10 text-strong focus:outline-none focus:border-[#22C55E]/50 focus:ring-2 focus:ring-[#22C55E]/20"
-                placeholder="01012345678"
-                dir="ltr"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2 text-soft">
-              كلمة المرور
-            </label>
-            <div className="relative">
-              <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-faint" />
-              <input
-                type="password"
-                required
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full bg-app border border-app rounded-xl py-3 px-4 pr-10 text-strong focus:outline-none focus:border-[#22C55E]/50 focus:ring-2 focus:ring-[#22C55E]/20"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-[#22C55E] text-white rounded-xl font-cairo font-bold hover:bg-[#22C55E]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                جاري تسجيل الدخول...
-              </>
-            ) : (
-              <>
-                تسجيل الدخول
-                <ArrowRight className="w-5 h-5" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-c">
-            ليس لديك حساب؟ تواصل مع صاحب الجيم
-          </p>
-        </div>
+        <p className="text-center mt-6 text-sm text-faint">
+          <Link href="/" className="hover:text-[#22C55E] transition-colors">
+            ← العودة للرئيسية
+          </Link>
+        </p>
       </div>
     </div>
   )
