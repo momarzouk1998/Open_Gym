@@ -79,7 +79,6 @@ const itemVariants = {
 }
 
 export function Hero() {
-  const shouldReduceMotion = useReducedMotion()
   const sectionRef = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({
     target: sectionRef,
