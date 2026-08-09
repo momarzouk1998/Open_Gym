@@ -292,9 +292,9 @@ export function Hero() {
           className="mt-16 sm:mt-24 grid grid-cols-3 gap-2 sm:gap-8 max-w-4xl mx-auto w-full border-t border-app pt-8 sm:pt-12"
         >
           {[
-            { value: 50, suffix: '+', label: 'جيم يثقون بنا' },
-            { value: 5000, suffix: '+', label: 'عضو نشط' },
-            { value: 1000000, suffix: '+', label: 'جنيه إيرادات' },
+            { value: 25, suffix: '+', label: 'جيم اعتمدوا علينا' },
+            { value: 1200, suffix: '+', label: 'عضو نشط' },
+            { value: 150000, suffix: '+ ج', label: 'حركات مالية مُدارة' },
           ].map((stat, i) => (
             <motion.div key={i} variants={itemVariants} className="text-center">
               <div className="text-xl sm:text-3xl md:text-5xl font-black font-cairo text-strong tracking-tight">
