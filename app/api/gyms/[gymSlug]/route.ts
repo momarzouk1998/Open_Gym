@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
 import { prisma } from '@/lib/prisma'
 import { auditFromRequest } from '@/lib/audit'
+import { VALID_PLAN_PRICES, getAddonsForPlan, getPlanByPrice } from '@/lib/billing'
+import type { AddonKey } from '@prisma/client'
 
 // GET /api/gyms/[gymSlug] — get gym details + plans
 export async function GET(
@@ -61,19 +63,16 @@ export async function PATCH(
   const body = await request.json()
   const { name, phone, city, address, basePlanPrice, addons } = body
 
-  // Validate basePlanPrice if provided (must be a valid plan price)
+  // Validate basePlanPrice if provided — uses VALID_PLAN_PRICES from billing.ts (single source)
   if (basePlanPrice !== undefined) {
-    const validPrices = [299, 599] // starter, pro
-    if (!validPrices.includes(basePlanPrice)) {
+    if (!VALID_PLAN_PRICES.includes(basePlanPrice)) {
       return NextResponse.json(
-        { error: 'سعر الباقة غير صالح' },
+        { error: `سعر الباقة غير صالح. الأسعار المتاحة: ${VALID_PLAN_PRICES.join('، ')} ج` },
         { status: 400 }
       )
     }
 
-    // Prevent self-service plan/addon changes after the trial ends.
-    // Only super_admin can change billing config for non-trial gyms.
-    // (During trial every addon is unlocked for free — changes are safe.)
+    // Prevent self-service plan changes after trial ends — super_admin only
     if (gym.status !== 'trial' && role !== 'super_admin') {
       return NextResponse.json(
         { error: 'لتغيير الباقة بعد انتهاء التجربة تواصل معنا مباشرة على 01558282760' },
@@ -82,13 +81,26 @@ export async function PATCH(
     }
   }
 
-  // Same guard for addons-only change (without basePlanPrice)
+  // Same guard for addons-only change
   if (addons !== undefined && basePlanPrice === undefined) {
     if (gym.status !== 'trial' && role !== 'super_admin') {
       return NextResponse.json(
         { error: 'لتغيير الإضافات بعد انتهاء التجربة تواصل معنا مباشرة على 01558282760' },
         { status: 403 }
       )
+    }
+  }
+
+  // When changing plan, auto-assign the correct addons:
+  // Pro → all addons included automatically
+  // Starter → addons stay as-is (user manages individually)
+  let resolvedAddons: AddonKey[] | undefined = addons
+  if (basePlanPrice !== undefined) {
+    const planKey = getPlanByPrice(basePlanPrice)
+    if (planKey) {
+      const planAddons = getAddonsForPlan(planKey)
+      // Pro: always set all addons. Starter: clear addons (start clean, user adds manually)
+      resolvedAddons = planKey === 'pro' ? planAddons : (addons ?? [])
     }
   }
 
@@ -100,7 +112,7 @@ export async function PATCH(
       ...(city !== undefined && { city: city || null }),
       ...(address !== undefined && { address: address || null }),
       ...(basePlanPrice !== undefined && { basePlanPrice }),
-      ...(addons !== undefined && { addons }),
+      ...(resolvedAddons !== undefined && { addons: resolvedAddons }),
     },
     select: { id: true, name: true, slug: true, basePlanPrice: true, addons: true },
   })

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useGymStore } from '@/store/gym-store'
 import { formatCurrency } from '@/lib/utils'
 import { ADDONS } from '@/lib/addons'
+import { PLANS } from '@/lib/billing'
 import {
   Building2,
   CreditCard,
@@ -12,6 +13,10 @@ import {
   Plus,
   Trash2,
   Sparkles,
+  Check,
+  X,
+  Crown,
+  Info,
 } from 'lucide-react'
 
 interface GymDetails {
@@ -35,10 +40,80 @@ interface GymPlan {
   price: number
 }
 
-const PLANS = [
-  { key: 'starter', name: 'Starter', price: 299, desc: 'للجيمات الصغيرة' },
-  { key: 'pro', name: 'Pro', price: 599, desc: 'كل المميزات' },
-] as const
+// Pulled directly from billing.ts — single source of truth
+const PLAN_LIST = [PLANS.starter, PLANS.pro] as const
+
+// Feature comparison rows shown in the plan picker
+const PLAN_COMPARISON = [
+  {
+    label: 'أعضاء وإشتراكات',
+    starter: true,
+    pro: true,
+  },
+  {
+    label: 'المدفوعات',
+    starter: true,
+    pro: true,
+  },
+  {
+    label: 'تقارير أساسية',
+    starter: true,
+    pro: true,
+  },
+  {
+    label: 'فرع واحد',
+    starter: true,
+    pro: true,
+  },
+  {
+    label: 'دعم فني',
+    starter: true,
+    pro: true,
+  },
+  {
+    label: 'المصروفات والخزنة',
+    starter: false,
+    pro: true,
+    addonPrice: ADDONS.expenses.price,
+  },
+  {
+    label: 'الموظفون والصلاحيات',
+    starter: false,
+    pro: true,
+    addonPrice: ADDONS.staff.price,
+  },
+  {
+    label: 'المدربون',
+    starter: false,
+    pro: true,
+    addonPrice: ADDONS.trainers.price,
+  },
+  {
+    label: 'الكلاسات والحجوزات',
+    starter: false,
+    pro: true,
+    addonPrice: ADDONS.classes.price,
+  },
+  {
+    label: 'إدارة الفروع المتعددة',
+    starter: false,
+    pro: true,
+    addonPrice: ADDONS.branches.price,
+  },
+  {
+    label: 'تقارير متقدمة + تصدير Excel',
+    starter: false,
+    pro: true,
+    addonPrice: ADDONS.advanced_reports.price,
+  },
+  {
+    label: 'أولوية الدعم الفني',
+    starter: false,
+    pro: true,
+  },
+]
+
+const ALL_ADDONS_PRICE = Object.values(ADDONS).reduce((s, a) => s + a.price, 0)
 
 export default function SettingsPage() {
   const { gym } = useGymStore()
@@ -51,12 +126,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
 
-  const [form, setForm] = useState({
-    name: '',
-    phone: '',
-    city: '',
-    address: '',
-  })
+  const [form, setForm] = useState({ name: '', phone: '', city: '', address: '' })
 
   // Plan form
   const [planForm, setPlanForm] = useState({ name: '', duration: '30', price: '300' })
@@ -65,7 +135,7 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!gymSlug) return
     fetch(`/api/gyms/${gymSlug}`)
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((data) => {
         setGymData(data.gym)
         setPlans(data.plans)
@@ -75,6 +145,7 @@ export default function SettingsPage() {
           city: data.gym.city || '',
           address: data.gym.address || '',
         })
+        setSelectedPrice(data.gym.basePlanPrice || PLANS.starter.price)
         setLoading(false)
       })
       .catch(() => setLoading(false))
@@ -86,7 +157,6 @@ export default function SettingsPage() {
     setSaving(true)
     setError('')
     setSaved(false)
-
     try {
       const res = await fetch(`/api/gyms/${gymSlug}`, {
         method: 'PATCH',
@@ -133,9 +203,7 @@ export default function SettingsPage() {
     if (!gymSlug) return
     if (!confirm('متأكد من حذف هذه الخطة؟')) return
     try {
-      const res = await fetch(`/api/gyms/${gymSlug}/plans/${planId}`, {
-        method: 'DELETE',
-      })
+      const res = await fetch(`/api/gyms/${gymSlug}/plans/${planId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('فشل الحذف')
       setPlans(plans.filter((p) => p.id !== planId))
     } catch (err) {
@@ -143,53 +211,41 @@ export default function SettingsPage() {
     }
   }
 
-  // --- Plan + Addons section state ---
-  const [selectedPrice, setSelectedPrice] = useState<number>(299)
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([])
-  const [addonsSaving, setAddonsSaving] = useState(false)
+  // Plan picker state
+  const [selectedPrice, setSelectedPrice] = useState<number>(PLANS.starter.price)
+  const [planSaveLoading, setPlanSaveLoading] = useState(false)
   const [planError, setPlanError] = useState('')
   const [planSaved, setPlanSaved] = useState(false)
 
-  // Sync local plan/addons state once gym data loads
-  useEffect(() => {
-    if (gymData) {
-      setSelectedPrice(gymData.basePlanPrice || 299)
-      setSelectedAddons(gymData.addons || [])
-    }
-  }, [gymData])
+  const selectedPlan = PLAN_LIST.find((p) => p.price === selectedPrice) ?? PLANS.starter
+  const isPro = selectedPlan.key === 'pro'
+  const isTrial = gymData?.status === 'trial'
+  const currentPlan = PLAN_LIST.find((p) => p.price === (gymData?.basePlanPrice ?? 0))
 
-  const toggleAddon = (key: string) => {
-    setSelectedAddons((prev) =>
-      prev.includes(key) ? prev.filter((a) => a !== key) : [...prev, key]
-    )
-  }
-
-  const handlePlanAddonsSave = async (e: React.FormEvent) => {
+  const handlePlanSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!gymSlug) return
-    setAddonsSaving(true)
+    setPlanSaveLoading(true)
     setPlanError('')
     setPlanSaved(false)
     try {
       const res = await fetch(`/api/gyms/${gymSlug}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          basePlanPrice: selectedPrice,
-          addons: selectedAddons,
-        }),
+        // For Pro: API will auto-assign all addons. For Starter: API clears addons.
+        body: JSON.stringify({ basePlanPrice: selectedPrice }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'فشل الحفظ')
       setGymData((prev) =>
-        prev ? { ...prev, basePlanPrice: selectedPrice, addons: selectedAddons } : prev
+        prev ? { ...prev, basePlanPrice: selectedPrice } : prev
       )
       setPlanSaved(true)
       setTimeout(() => setPlanSaved(false), 3000)
     } catch (err) {
       setPlanError(err instanceof Error ? err.message : 'حدث خطأ')
     } finally {
-      setAddonsSaving(false)
+      setPlanSaveLoading(false)
     }
   }
 
@@ -211,7 +267,7 @@ export default function SettingsPage() {
         <p className="text-sm text-muted-c">إدارة بيانات جيمك وحسابك</p>
       </div>
 
-      {/* Gym Info */}
+      {/* ── Gym Info ─────────────────────────────────────────────── */}
       <form onSubmit={handleSave} className="glass-card p-6 rounded-2xl space-y-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-[#22C55E]/10 flex items-center justify-center">
@@ -234,93 +290,59 @@ export default function SettingsPage() {
 
         <div>
           <label className="block text-sm font-medium mb-2 text-soft">اسم الجيم</label>
-          <input
-            type="text"
-            required
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className={inputClass}
-          />
+          <input type="text" required value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-2 text-soft">التليفون</label>
-            <input
-              type="tel"
-              dir="ltr"
-              value={form.phone}
+            <input type="tel" dir="ltr" value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className={`${inputClass} text-left`}
-              placeholder="01012345678"
-            />
+              className={`${inputClass} text-left`} placeholder="01012345678" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-2 text-soft">المدينة</label>
-            <input
-              type="text"
-              value={form.city}
+            <input type="text" value={form.city}
               onChange={(e) => setForm({ ...form, city: e.target.value })}
-              className={inputClass}
-              placeholder="القاهرة"
-            />
+              className={inputClass} placeholder="القاهرة" />
           </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-2 text-soft">العنوان</label>
-          <input
-            type="text"
-            value={form.address}
+          <input type="text" value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
-            className={inputClass}
-            placeholder="العنوان التفصيلي"
-          />
+            className={inputClass} placeholder="العنوان التفصيلي" />
         </div>
-
-        <button
-          type="submit"
-          disabled={saving}
-          className="w-full py-3 bg-[#22C55E] text-white rounded-xl font-semibold hover:bg-[#16A34A] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              جاري الحفظ...
-            </>
-          ) : (
-            'حفظ التغييرات'
-          )}
+        <button type="submit" disabled={saving}
+          className="w-full py-3 bg-[#22C55E] text-white rounded-xl font-semibold hover:bg-[#16A34A] transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+          {saving ? <><Loader2 className="w-5 h-5 animate-spin" />جاري الحفظ...</> : 'حفظ التغييرات'}
         </button>
       </form>
 
-      {/* Subscription Plans */}
+      {/* ── Subscription Plans (gym's own plans for members) ───── */}
       <div className="glass-card p-6 rounded-2xl space-y-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-[#22C55E]/10 flex items-center justify-center">
             <CreditCard className="w-5 h-5 text-[#22C55E]" />
           </div>
-          <h3 className="font-cairo font-bold text-lg">خطط الاشتراك</h3>
+          <div>
+            <h3 className="font-cairo font-bold text-lg">خطط الاشتراك</h3>
+            <p className="text-xs text-faint">الخطط اللي بتقدّمها لأعضاء جيمك</p>
+          </div>
         </div>
 
-        {/* Existing plans */}
         <div className="space-y-2">
           {plans.length === 0 ? (
             <p className="text-sm text-faint">مفيش خطط بعد</p>
           ) : (
             plans.map((plan) => (
-              <div
-                key={plan.id}
-                className="flex items-center justify-between p-3 surface rounded-xl"
-              >
+              <div key={plan.id} className="flex items-center justify-between p-3 surface rounded-xl">
                 <div>
                   <div className="font-medium text-sm">{plan.name}</div>
-                  <div className="text-xs text-faint">
-                    {plan.duration} يوم — {formatCurrency(plan.price)}
-                  </div>
+                  <div className="text-xs text-faint">{plan.duration} يوم — {formatCurrency(plan.price)}</div>
                 </div>
-                <button
-                  onClick={() => handleDeletePlan(plan.id)}
-                  className="p-1.5 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors"
-                >
+                <button onClick={() => handleDeletePlan(plan.id)}
+                  className="p-1.5 text-[#EF4444] hover:bg-[#EF4444]/10 rounded-lg transition-colors">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -328,75 +350,48 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Add plan form */}
         <form onSubmit={handleAddPlan} className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-app">
-          <input
-            type="text"
-            required
-            placeholder="اسم الخطة"
-            value={planForm.name}
+          <input type="text" required placeholder="اسم الخطة" value={planForm.name}
             onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })}
-            className={`${inputClass} py-2.5 text-sm`}
-          />
-          <input
-            type="number"
-            required
-            min="1"
-            dir="ltr"
-            placeholder="المدة (يوم)"
-            value={planForm.duration}
+            className={`${inputClass} py-2.5 text-sm`} />
+          <input type="number" required min="1" dir="ltr" placeholder="المدة (يوم)" value={planForm.duration}
             onChange={(e) => setPlanForm({ ...planForm, duration: e.target.value })}
-            className={`${inputClass} py-2.5 text-sm text-left`}
-          />
-          <input
-            type="number"
-            required
-            min="0"
-            dir="ltr"
-            placeholder="السعر"
-            value={planForm.price}
+            className={`${inputClass} py-2.5 text-sm text-left`} />
+          <input type="number" required min="0" dir="ltr" placeholder="السعر" value={planForm.price}
             onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })}
-            className={`${inputClass} py-2.5 text-sm text-left`}
-          />
-          <button
-            type="submit"
-            disabled={planSaving}
-            className="bg-[#22C55E]/10 text-[#22C55E] rounded-xl py-2.5 text-sm font-semibold hover:bg-[#22C55E]/20 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
-          >
+            className={`${inputClass} py-2.5 text-sm text-left`} />
+          <button type="submit" disabled={planSaving}
+            className="bg-[#22C55E]/10 text-[#22C55E] rounded-xl py-2.5 text-sm font-semibold hover:bg-[#22C55E]/20 transition-colors flex items-center justify-center gap-1 disabled:opacity-50">
             {planSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             إضافة
           </button>
         </form>
       </div>
 
-      {/* Plan + Addons (interactive) */}
-      <form
-        onSubmit={handlePlanAddonsSave}
-        className="glass-card p-6 rounded-2xl space-y-5"
-      >
-        <div className="flex items-center gap-3 mb-2">
+      {/* ── Platform Plan Picker ─────────────────────────────────── */}
+      <form onSubmit={handlePlanSave} className="glass-card p-6 rounded-2xl space-y-6">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-[#22C55E]/10 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-[#22C55E]" />
           </div>
           <div>
-            <h3 className="font-cairo font-bold text-lg">الباقة والإضافات</h3>
+            <h3 className="font-cairo font-bold text-lg">باقة OpenGym</h3>
             <p className="text-xs text-faint">
-              {gymData?.status === 'trial'
-                ? 'جرّب كل الإضافات مجاناً خلال التجربة'
-                : 'لتغيير الباقة أو الإضافات تواصل معنا مباشرة'}
+              {isTrial
+                ? 'اختار الباقة المناسبة — كل المميزات مفتوحة للتجربة'
+                : 'لتغيير الباقة تواصل معنا مباشرة'}
             </p>
           </div>
         </div>
 
         {/* Non-trial locked notice */}
-        {gymData && gymData.status !== 'trial' && (
+        {!isTrial && (
           <div className="p-4 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/30 text-sm text-[#F59E0B] flex items-start gap-3">
             <span className="text-lg leading-none mt-0.5">🔒</span>
             <div>
               <p className="font-semibold mb-1">التغيير يتم بالتنسيق معنا</p>
               <p className="text-xs text-[#F59E0B]/80">
-                بعد انتهاء فترة التجربة، أي تغيير في الباقة أو الإضافات يتم عن طريق التواصل المباشر
-                على{' '}
+                تواصل على{' '}
                 <span className="font-bold" dir="ltr">01558282760</span>
                 {' '}(انستاباي / فودافون كاش)
               </p>
@@ -412,123 +407,167 @@ export default function SettingsPage() {
         {planSaved && (
           <div className="p-3 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] text-sm flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4" />
-            تم تحديث الباقة والإضافات بنجاح
+            تم تحديث الباقة بنجاح
           </div>
         )}
 
-        {/* Plan picker */}
-        <div className={`grid grid-cols-2 gap-3 ${gymData?.status !== 'trial' ? 'opacity-50 pointer-events-none' : ''}`}>
-          {PLANS.map((plan) => {
-            const active = selectedPrice === plan.price
+        {/* ── Plan cards ── */}
+        <div className={`grid sm:grid-cols-2 gap-4 ${!isTrial ? 'opacity-50 pointer-events-none' : ''}`}>
+          {PLAN_LIST.map((plan) => {
+            const isSelected = selectedPrice === plan.price
+            const isCurrent = currentPlan?.key === plan.key
+
             return (
               <button
                 type="button"
                 key={plan.key}
                 onClick={() => setSelectedPrice(plan.price)}
-                className={`p-4 rounded-xl border-2 text-right transition-all ${
-                  active
+                className={`relative p-5 rounded-2xl border-2 text-right transition-all ${
+                  isSelected
                     ? 'border-[#22C55E] bg-[#22C55E]/5'
                     : 'border-app hover:border-[#22C55E]/30'
                 }`}
               >
-                <div className="font-cairo font-bold text-lg mb-0.5">{plan.name}</div>
-                <div className="text-xs text-muted-c mb-2">{plan.desc}</div>
-                <div className="text-2xl font-bold text-[#22C55E]">
-                  {plan.price}
-                  <span className="text-xs text-faint font-normal"> ج/شهر</span>
+                {/* Popular badge */}
+                {plan.key === 'pro' && (
+                  <div className="absolute -top-3 right-4 flex items-center gap-1 px-3 py-1 bg-[#22C55E] rounded-full text-xs font-bold text-white">
+                    <Crown className="w-3 h-3" />
+                    الأفضل
+                  </div>
+                )}
+
+                {/* Current plan badge */}
+                {isCurrent && !isTrial && (
+                  <div className="absolute -top-3 left-4 px-3 py-1 bg-[#3B82F6] rounded-full text-xs font-bold text-white">
+                    باقتك الحالية
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="font-cairo font-bold text-xl mb-0.5">{plan.name}</div>
+                    <div className="text-xs text-muted-c leading-relaxed">{plan.description}</div>
+                  </div>
+                  {/* Selection indicator */}
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
+                    isSelected ? 'border-[#22C55E] bg-[#22C55E]' : 'border-app'
+                  }`}>
+                    {isSelected && <Check className="w-3 h-3 text-white" />}
+                  </div>
                 </div>
+
+                {/* Price */}
+                <div className="flex items-end gap-1 mb-4">
+                  <span className="text-3xl font-black font-cairo text-strong">
+                    {plan.price.toLocaleString('ar-EG')}
+                  </span>
+                  <span className="text-sm text-faint mb-1">ج / شهر</span>
+                </div>
+
+                {/* What's different highlight */}
+                {plan.key === 'pro' ? (
+                  <div className="p-2.5 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/20 text-xs text-[#4ADE80] font-medium text-center">
+                    يشمل كل الإضافات — بدون رسوم إضافية
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-app border border-app text-xs text-faint text-center">
+                    الإضافات اختيارية بسعر منفصل
+                  </div>
+                )}
               </button>
             )
           })}
         </div>
 
-        {/* Addons */}
-        <div className={gymData?.status !== 'trial' ? 'opacity-50 pointer-events-none' : ''}>
-          <p className="text-sm font-medium mb-3 text-soft">الإضافات</p>
-          <div className="space-y-2">
-            {Object.values(ADDONS).map((addon) => {
-              const active = selectedAddons.includes(addon.key)
-              return (
-                <label
-                  key={addon.key}
-                  className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                    active
-                      ? 'border-[#22C55E]/40 bg-[#22C55E]/5'
-                      : 'border-app hover:border-[#22C55E]/20'
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={active}
-                    onChange={() => toggleAddon(addon.key)}
-                    className="w-5 h-5 rounded accent-[#22C55E]"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm">{addon.name}</div>
-                    <div className="text-xs text-muted-c">{addon.description}</div>
-                  </div>
-                  <span className="text-sm font-bold text-[#22C55E] whitespace-nowrap">
-                    +{addon.price} ج
-                  </span>
-                </label>
-              )
-            })}
+        {/* ── Feature comparison table ── */}
+        <div className={!isTrial ? 'opacity-50' : ''}>
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="w-4 h-4 text-faint" />
+            <span className="text-sm font-medium text-soft">مقارنة الباقات</span>
+          </div>
+
+          <div className="rounded-2xl border border-app overflow-hidden">
+            {/* Table header */}
+            <div className="grid grid-cols-3 bg-app/60 px-4 py-2.5 border-b border-app text-xs font-bold text-center">
+              <div className="text-right text-faint">الميزة</div>
+              <div className="text-[#94A3B8]">Starter<br /><span className="font-normal text-[10px]">{PLANS.starter.price.toLocaleString('ar-EG')} ج/شهر</span></div>
+              <div className="text-[#22C55E]">Pro<br /><span className="font-normal text-[10px]">{PLANS.pro.price.toLocaleString('ar-EG')} ج/شهر</span></div>
+            </div>
+
+            {PLAN_COMPARISON.map((row, i) => (
+              <div
+                key={i}
+                className={`grid grid-cols-3 px-4 py-2.5 items-center text-sm ${
+                  i % 2 === 0 ? '' : 'bg-white/[0.02]'
+                } ${i < PLAN_COMPARISON.length - 1 ? 'border-b border-app/50' : ''}`}
+              >
+                {/* Feature name */}
+                <div className="flex items-center gap-2">
+                  <span className="text-soft">{row.label}</span>
+                  {row.addonPrice && !row.starter && (
+                    <span className="text-[10px] text-faint bg-app px-1.5 py-0.5 rounded-md border border-app whitespace-nowrap">
+                      +{row.addonPrice} ج
+                    </span>
+                  )}
+                </div>
+
+                {/* Starter */}
+                <div className="flex items-center justify-center">
+                  {row.starter ? (
+                    <Check className="w-4 h-4 text-[#22C55E]" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-0.5">
+                      <X className="w-4 h-4 text-faint" />
+                      {row.addonPrice && (
+                        <span className="text-[9px] text-faint">إضافة</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pro */}
+                <div className="flex items-center justify-center">
+                  <Check className="w-4 h-4 text-[#22C55E]" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Addons saving note for Pro */}
+          <div className="mt-3 p-3 rounded-xl bg-[#22C55E]/5 border border-[#22C55E]/20">
+            <p className="text-xs text-[#4ADE80] text-center">
+              باقة Pro بتوفر عليك{' '}
+              <span className="font-bold">
+                {(PLANS.starter.price + ALL_ADDONS_PRICE - PLANS.pro.price).toLocaleString('ar-EG')} ج/شهر
+              </span>{' '}
+              مقارنةً بـ Starter + كل الإضافات (
+              {(PLANS.starter.price + ALL_ADDONS_PRICE).toLocaleString('ar-EG')} ج)
+            </p>
           </div>
         </div>
 
-        {/* Price summary */}
-        {(() => {
-          const addonsTotal = selectedAddons.reduce(
-            (sum, key) => sum + (ADDONS[key as keyof typeof ADDONS]?.price ?? 0),
-            0
-          )
-          const total = selectedPrice + addonsTotal
-          return (
-            <div className="p-4 surface rounded-xl border border-app space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-c">الباقة</span>
-                <span>
-                  {PLANS.find((p) => p.price === selectedPrice)?.name} —{' '}
-                  {formatCurrency(selectedPrice)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-c">الإضافات ({selectedAddons.length})</span>
-                <span>{formatCurrency(addonsTotal)}</span>
-              </div>
-              <div className="pt-2 border-t border-app flex justify-between font-bold">
-                <span>الإجمالي شهرياً</span>
-                <span className="text-[#22C55E]">{formatCurrency(total)}</span>
-              </div>
-            </div>
-          )
-        })()}
-
         {/* Payment note */}
-        <div className="p-3 surface/50 rounded-xl border border-app">
+        <div className="p-3 rounded-xl border border-app">
           <p className="text-xs text-muted-c">
-            للحصول على الإضافات أو تغيير الباقة، تواصل معنا على:{' '}
-            <span className="font-bold text-[#22C55E]" dir="ltr">
-              01558282760
-            </span>{' '}
-            (انستاباي / فودافون كاش)
+            للدفع أو تغيير الباقة، تواصل معنا على:{' '}
+            <span className="font-bold text-[#22C55E]" dir="ltr">01558282760</span>
+            {' '}(انستاباي / فودافون كاش)
           </p>
         </div>
 
         <button
           type="submit"
-          disabled={addonsSaving || gymData?.status !== 'trial'}
+          disabled={planSaveLoading || !isTrial || selectedPrice === gymData?.basePlanPrice}
           className="w-full py-3.5 bg-[#22C55E] text-white rounded-xl font-semibold hover:bg-[#16A34A] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {addonsSaving ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              جاري الحفظ...
-            </>
-          ) : gymData?.status !== 'trial' ? (
+          {planSaveLoading ? (
+            <><Loader2 className="w-5 h-5 animate-spin" />جاري الحفظ...</>
+          ) : !isTrial ? (
             'التواصل مطلوب لتغيير الباقة'
+          ) : selectedPrice === gymData?.basePlanPrice ? (
+            'هذه باقتك الحالية'
           ) : (
-            'حفظ الباقة والإضافات'
+            `حفظ — التحويل لباقة ${selectedPlan.name}`
           )}
         </button>
       </form>
