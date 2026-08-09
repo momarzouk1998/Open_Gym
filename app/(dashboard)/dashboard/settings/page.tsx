@@ -501,22 +501,7 @@ export default function SettingsPage() {
               اطبع هذا الباركود وضعه في مدخل الجيم للاستخدام في تسجيل الحضور
             </p>
             
-            {/* Attendance URL */}
-            <div className="bg-app/50 p-3 rounded-xl mb-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-soft">رابط الحضور:</span>
-                <button
-                  onClick={handleCopyAttendanceUrl}
-                  className="text-[#22C55E] hover:text-[#22C55E]/80 transition-colors flex items-center gap-1 text-xs"
-                >
-                  <Copy className="w-3 h-3" />
-                  نسخ
-                </button>
-              </div>
-              <p className="text-xs text-muted-c mt-1 truncate" dir="ltr">
-                {window.location.origin}/attendance/{gymData.slug}
-              </p>
-            </div>
+
             
             <div className="flex gap-2">
               <button
