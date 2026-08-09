@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Save,
   Trash2,
+  KeyRound,
 } from 'lucide-react'
 
 interface AdminGym {
@@ -160,6 +161,29 @@ export default function AdminGymEditPage() {
     }
   }
 
+  const [resettingPassword, setResettingPassword] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState('')
+
+  const handleResetOwnerPassword = async () => {
+    if (!window.confirm(`هل تريد إعادة تعيين كلمة مرور المالك (${gym?.ownerEmail}) إلى 123456؟`)) return
+    setResettingPassword(true)
+    setResetSuccess('')
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/gyms/${gymId}/reset-password`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل إعادة التعيين')
+      setResetSuccess(data.message || 'تم إعادة تعيين كلمة المرور إلى 123456 بنجاح')
+      setTimeout(() => setResetSuccess(''), 4000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء إعادة التعيين')
+    } finally {
+      setResettingPassword(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -241,8 +265,40 @@ export default function AdminGymEditPage() {
               <span className="text-muted-c block mb-1">آخر دفع</span>
               <span>{formatDate(gym.lastPaidAt)}</span>
             </div>
-          )}
+      </div>
+
+      {/* Reset Owner Password Card */}
+      <div className="glass-card p-6 rounded-2xl space-y-3 border border-[#22C55E]/20">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 className="font-cairo font-bold text-lg text-white">إعادة تعيين كلمة مرور المالك</h3>
+            <p className="text-xs text-muted-c">إعادة تعيين كلمة السر الخاصة بحساب مالك الجيم ({gym.ownerEmail}) إلى 123456</p>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetOwnerPassword}
+            disabled={resettingPassword}
+            className="px-4 py-2.5 bg-[#22C55E]/10 border border-[#22C55E]/30 text-[#22C55E] rounded-xl font-cairo font-bold text-sm hover:bg-[#22C55E]/20 transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {resettingPassword ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                جاري الإعادة...
+              </>
+            ) : (
+              <>
+                <KeyRound className="w-4 h-4" />
+                إعادة تعيين كلمة السر إلى 123456
+              </>
+            )}
+          </button>
         </div>
+        {resetSuccess && (
+          <div className="p-3 rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#22C55E] text-sm flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4" />
+            {resetSuccess}
+          </div>
+        )}
       </div>
 
       {/* Editable form */}
