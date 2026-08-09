@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { QrCode, Camera, CheckCircle2, AlertCircle, Copy, Check } from 'lucide-react'
+import { QrCode, Camera, CheckCircle2, AlertCircle, Copy, Check, Loader2 } from 'lucide-react'
 
-export default function MemberPage() {
+function MemberCardContent() {
   const searchParams = useSearchParams()
   const memberCode = searchParams.get('code')
   const [memberData, setMemberData] = useState<any>(null)
@@ -200,5 +200,17 @@ export default function MemberPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function MemberPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#22C55E]" />
+      </div>
+    }>
+      <MemberCardContent />
+    </Suspense>
   )
 }
