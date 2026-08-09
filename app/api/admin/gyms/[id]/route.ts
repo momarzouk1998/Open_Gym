@@ -20,23 +20,14 @@ export async function GET(
   const { id } = await params
   const gym = await prisma.gym.findUnique({
     where: { id },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      ownerName: true,
-      ownerEmail: true,
-      ownerPhone: true,
-      phone: true,
-      city: true,
-      address: true,
-      status: true,
-      basePlanPrice: true,
-      addons: true,
-      billingCycle: true,
-      nextBillingDate: true,
-      lastPaidAt: true,
-      createdAt: true,
+    include: {
+      _count: {
+        select: {
+          members: true,
+          subscriptions: true,
+          branches: true,
+        },
+      },
     },
   })
 
@@ -47,7 +38,7 @@ export async function GET(
   return NextResponse.json({ gym })
 }
 
-// PATCH /api/admin/gyms/[id] — super_admin edits a gym's plan/addons/status/billing
+// PATCH /api/admin/gyms/[id] — super_admin edits a gym's details, plan, addons, status, billing, dates & notes
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -62,9 +53,24 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
-  const { basePlanPrice, addons, status, billingCycle, nextBillingDate } = body
+  const { 
+    name, 
+    ownerName, 
+    ownerPhone, 
+    ownerEmail, 
+    phone, 
+    city, 
+    address, 
+    basePlanPrice, 
+    addons, 
+    status, 
+    billingCycle, 
+    nextBillingDate,
+    trialEndsAt,
+    adminNotes
+  } = body
 
-  // Validate plan price against billing.ts (single source of truth)
+  // Validate plan price if provided
   if (basePlanPrice !== undefined) {
     if (typeof basePlanPrice !== 'number' || !VALID_PLAN_PRICES.includes(basePlanPrice)) {
       return NextResponse.json(
@@ -74,8 +80,7 @@ export async function PATCH(
     }
   }
 
-  // If plan changes but addons not explicitly provided, auto-assign correct addons:
-  // Pro → all addons. Starter → clear addons (admin can override by passing addons explicitly).
+  // If plan changes but addons not explicitly provided, auto-assign correct addons
   let resolvedAddons: AddonKey[] | undefined = addons !== undefined ? (addons as AddonKey[]) : undefined
   if (basePlanPrice !== undefined && addons === undefined) {
     const planKey = getPlanByPrice(basePlanPrice)
@@ -100,9 +105,27 @@ export async function PATCH(
     }
   }
 
+  // If ownerEmail is changing, update associated User model email as well
+  if (ownerEmail) {
+    const existingGym = await prisma.gym.findUnique({ where: { id }, select: { ownerEmail: true } })
+    if (existingGym && existingGym.ownerEmail !== ownerEmail) {
+      await prisma.user.updateMany({
+        where: { email: existingGym.ownerEmail },
+        data: { email: ownerEmail },
+      })
+    }
+  }
+
   const updated = await prisma.gym.update({
     where: { id },
     data: {
+      ...(name !== undefined && { name }),
+      ...(ownerName !== undefined && { ownerName }),
+      ...(ownerPhone !== undefined && { ownerPhone }),
+      ...(ownerEmail !== undefined && { ownerEmail }),
+      ...(phone !== undefined && { phone }),
+      ...(city !== undefined && { city }),
+      ...(address !== undefined && { address }),
       ...(basePlanPrice !== undefined && { basePlanPrice }),
       ...(resolvedAddons !== undefined && { addons: resolvedAddons }),
       ...(status !== undefined && { status: status as GymStatus }),
@@ -110,15 +133,10 @@ export async function PATCH(
       ...(nextBillingDate !== undefined && {
         nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
       }),
-    },
-    select: {
-      id: true,
-      name: true,
-      basePlanPrice: true,
-      addons: true,
-      status: true,
-      billingCycle: true,
-      nextBillingDate: true,
+      ...(trialEndsAt !== undefined && {
+        trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null,
+      }),
+      ...(adminNotes !== undefined && { adminNotes }),
     },
   })
 
