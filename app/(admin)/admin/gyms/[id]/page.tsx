@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { ADDONS } from '@/lib/addons'
 import { PLANS as BILLING_PLANS, getAddonsForPlan, getPlanByPrice } from '@/lib/billing'
@@ -22,7 +23,10 @@ import {
   GitBranch,
   FileText,
   Clock,
-  Sparkles
+  Sparkles,
+  LogIn,
+  Megaphone,
+  Printer
 } from 'lucide-react'
 
 interface AdminGym {
@@ -44,6 +48,7 @@ interface AdminGym {
   lastPaidAt: string | null
   createdAt: string
   adminNotes: string | null
+  broadcastBanner: string | null
   _count?: {
     members: number
     subscriptions: number
@@ -87,6 +92,7 @@ export default function AdminGymEditPage() {
     city: '',
     address: '',
     adminNotes: '',
+    broadcastBanner: '',
   })
 
   const [basePlanPrice, setBasePlanPrice] = useState<number>(BILLING_PLANS.starter.price)
@@ -99,6 +105,7 @@ export default function AdminGymEditPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [resettingPassword, setResettingPassword] = useState(false)
+  const [impersonating, setImpersonating] = useState(false)
   const [saved, setSaved] = useState(false)
   const [resetSuccess, setResetSuccess] = useState('')
   const [error, setError] = useState('')
@@ -120,6 +127,7 @@ export default function AdminGymEditPage() {
             city: g.city || '',
             address: g.address || '',
             adminNotes: g.adminNotes || '',
+            broadcastBanner: g.broadcastBanner || '',
           })
           setBasePlanPrice(g.basePlanPrice || BILLING_PLANS.starter.price)
           setAddons(g.addons || [])
@@ -233,6 +241,32 @@ export default function AdminGymEditPage() {
     }
   }
 
+  // Super Admin Impersonation: Log in as Gym Owner directly
+  const handleImpersonateGym = async () => {
+    if (!window.confirm(`هل تريد تسجيل الدخول المباشر لحساب مالك جيم (${gym?.name})؟`)) return
+    setImpersonating(true)
+    setError('')
+    try {
+      const res = await fetch(`/api/admin/gyms/${gymId}/impersonate`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل الانتحال')
+
+      const result = await signIn('credentials', {
+        impersonationToken: data.impersonationToken,
+        redirect: false,
+      })
+
+      if (result?.ok) {
+        window.location.href = '/dashboard'
+      } else {
+        throw new Error('فشل بدء الجلسة كمالك الجيم')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'حدث خطأ أثناء الانتحال')
+      setImpersonating(false)
+    }
+  }
+
   // Reset Owner Password
   const handleResetOwnerPassword = async () => {
     if (!window.confirm(`هل تريد إعادة تعيين كلمة مرور المالك (${gym?.ownerEmail}) إلى 123456؟`)) return
@@ -313,7 +347,7 @@ export default function AdminGymEditPage() {
         العودة لقائمة الجيمات
       </button>
 
-      {/* Header & Quick Status */}
+      {/* Header & Quick Actions */}
       <div className="flex items-center justify-between flex-wrap gap-4 glass-card p-6 rounded-2xl border border-[#22C55E]/20">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-[#22C55E]/10 flex items-center justify-center border border-[#22C55E]/30">
@@ -342,6 +376,15 @@ export default function AdminGymEditPage() {
             </span>
           )}
 
+          {/* Printable Invoice Button */}
+          <button
+            onClick={() => router.push(`/admin/gyms/${gymId}/invoice`)}
+            className="px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-bold hover:bg-blue-500/20 transition-colors flex items-center gap-1.5"
+          >
+            <Printer className="w-4 h-4" />
+            فاتورة المنصة
+          </button>
+
           {whatsappNumber && (
             <a
               href={whatsappUrl}
@@ -356,14 +399,28 @@ export default function AdminGymEditPage() {
         </div>
       </div>
 
-      {/* 🚀 Quick Actions Bar (شريط الإجراءات السريعة) */}
+      {/* 🚀 Quick Actions Bar (شريط الإجراءات السريعة + الدخول المباشر) */}
       <div className="glass-card p-6 rounded-2xl space-y-4">
         <h3 className="font-cairo font-bold text-lg text-white flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-[#22C55E]" />
-          إجراءات التحكم السريع (Quick Actions)
+          إجراءات التحكم السريع واللوحة (Quick Actions)
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {/* 🔐 Impersonation Button */}
+          <button
+            onClick={handleImpersonateGym}
+            disabled={impersonating}
+            className="py-3 px-4 bg-purple-600 text-white rounded-xl text-xs font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-2 shadow-md shadow-purple-600/20 disabled:opacity-50"
+          >
+            {impersonating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
+            دخول كـ المالك 🔐
+          </button>
+
           {gym.status !== 'active' ? (
             <button
               onClick={() => handleToggleStatus('active')}
@@ -387,7 +444,7 @@ export default function AdminGymEditPage() {
             className="py-3 px-4 bg-app border border-app text-white rounded-xl text-xs font-bold hover:surface transition-colors flex items-center justify-center gap-2"
           >
             <Calendar className="w-4 h-4 text-[#22C55E]" />
-            إضافة سماح (+7 أيام)
+            سماح (+7 أيام)
           </button>
 
           <button
@@ -395,7 +452,7 @@ export default function AdminGymEditPage() {
             className="py-3 px-4 bg-app border border-app text-white rounded-xl text-xs font-bold hover:surface transition-colors flex items-center justify-center gap-2"
           >
             <Calendar className="w-4 h-4 text-[#22C55E]" />
-            إضافة شهر (+30 يوم)
+            شهر (+30 يوم)
           </button>
 
           <button
@@ -408,7 +465,7 @@ export default function AdminGymEditPage() {
             ) : (
               <KeyRound className="w-4 h-4" />
             )}
-            تأفير الباسورد 123456
+            باسورد 123456
           </button>
         </div>
 
@@ -455,9 +512,9 @@ export default function AdminGymEditPage() {
         </div>
       )}
 
-      {/* ── Main Edit Form (كل بيانات الجيم والاشتراك) ───────────────── */}
+      {/* ── Main Edit Form (كل بيانات الجيم والاشتراك والبنر) ───────────────── */}
       <form onSubmit={handleSave} className="glass-card p-6 rounded-2xl space-y-6">
-        <h3 className="font-cairo font-bold text-lg text-white">تعديل كافة بيانات الجيم</h3>
+        <h3 className="font-cairo font-bold text-lg text-white">تعديل كافة بيانات الجيم والإنذارات</h3>
 
         {error && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
@@ -470,6 +527,24 @@ export default function AdminGymEditPage() {
             تم حفظ التغييرات بنجاح
           </div>
         )}
+
+        {/* 📢 Broadcast Banner (بنر تنبيه خاص للجيم) */}
+        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+          <label className="block text-sm font-bold text-amber-400 flex items-center gap-2">
+            <Megaphone className="w-4 h-4" />
+            📢 بنر تنبيه خاص يظهر أعلى لوحة تحكم هذا الجيم (Dashboard Broadcast Banner)
+          </label>
+          <input
+            type="text"
+            value={form.broadcastBanner}
+            onChange={(e) => setForm({ ...form, broadcastBanner: e.target.value })}
+            className={inputClass}
+            placeholder="مثال: عزيزي المالك، يرجى تحويل قيمة الاشتراك عبر انستاباي على الرقم 01558282760"
+          />
+          <p className="text-xs text-muted-c">
+            إذا تم كتابة نص هنا، سيظهر كـ بنر تنبيه بارز باللون الأصفر في أعلى شاشة لوحة تحكم صاحب الجيم فوراً عند دخوله! (اتركه فارغاً لإلغائه).
+          </p>
+        </div>
 
         {/* Gym & Owner Basic Info */}
         <div className="space-y-4">
@@ -568,7 +643,6 @@ export default function AdminGymEditPage() {
             <div className="grid grid-cols-2 gap-3">
               {PLANS.map((plan) => {
                 const active = basePlanPrice === plan.price
-                const isPro = plan.key === 'pro'
                 return (
                   <button
                     type="button"
@@ -721,7 +795,7 @@ export default function AdminGymEditPage() {
           {saving ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              جاري حفظ البيانات...
+              جاري حفظ البيانات والبنر...
             </>
           ) : (
             <>

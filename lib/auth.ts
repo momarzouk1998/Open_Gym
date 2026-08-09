@@ -15,6 +15,8 @@ import { rateLimit } from './rate-limit'
  * The cookie names + session callback are inherited unchanged from authConfig so that
  * the middleware (edge) and the API routes (node) agree on how to read the session.
  */
+import { consumeImpersonationToken } from './impersonation'
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -23,8 +25,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: 'البريد الإلكتروني', type: 'email' },
         password: { label: 'كلمة المرور', type: 'password' },
+        impersonationToken: { label: 'رمز الانتحال', type: 'text' },
       },
       async authorize(credentials) {
+        // Handle Super Admin Impersonation
+        if (credentials?.impersonationToken) {
+          const userId = consumeImpersonationToken(credentials.impersonationToken as string)
+          if (userId) {
+            const user = await prisma.user.findUnique({ where: { id: userId } })
+            if (user) {
+              return { id: user.id, email: user.email, name: user.name }
+            }
+          }
+          return null
+        }
+
         if (!credentials?.email || !credentials?.password) {
           return null
         }

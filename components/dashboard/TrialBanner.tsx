@@ -4,16 +4,8 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useGymStore } from '@/store/gym-store'
 import { motion, AnimatePresence } from 'motion/react'
-import { Sparkles, X, Clock, ArrowLeft } from 'lucide-react'
+import { Sparkles, X, Clock, ArrowLeft, Megaphone } from 'lucide-react'
 
-/**
- * Trial banner shown at the top of the dashboard during the 7-day trial.
- *
- * - Counts days remaining from gym.trialEndsAt
- * - Dismissible for the current session (sessionStorage)
- * - Turns red/urgent in the final 3 days
- * - Hidden for super_admin (they don't have a trial)
- */
 export function TrialBanner() {
   const { gym, user } = useGymStore()
   const [dismissed, setDismissed] = useState(false)
@@ -25,6 +17,9 @@ export function TrialBanner() {
     return sessionStorage.getItem(sessionKey) === '1'
   })
 
+  // 📢 Check if Super Admin set a custom broadcast banner for this gym
+  const broadcastMsg = (gym as unknown as { broadcastBanner?: string | null })?.broadcastBanner
+
   const trialEnd = gym?.trialEndsAt
   const daysLeft = useMemo(() => {
     if (!trialEnd) return null
@@ -34,20 +29,14 @@ export function TrialBanner() {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
   }, [trialEnd])
 
-  // Only show for gyms in trial status, not super_admin, with days left, not dismissed
   const isTrial = gym?.status === 'trial'
   const shouldShow =
-    isTrial &&
+    (isTrial || broadcastMsg) &&
     user?.role !== 'super_admin' &&
-    daysLeft !== null &&
-    daysLeft > 0 &&
     !dismissed &&
     !wasDismissed
 
   if (!shouldShow) return null
-
-  // Urgency: final 3 days = red, otherwise green
-  const isUrgent = daysLeft !== null && daysLeft <= 3
 
   const handleDismiss = () => {
     setDismissed(true)
@@ -55,6 +44,36 @@ export function TrialBanner() {
       sessionStorage.setItem(sessionKey, '1')
     }
   }
+
+  // 1️⃣ Custom Admin Broadcast Banner takes priority if present
+  if (broadcastMsg) {
+    return (
+      <div className="relative flex items-center justify-between gap-4 px-4 sm:px-6 py-3 bg-[#F59E0B]/10 border-b border-[#F59E0B]/20 text-[#F59E0B]">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-9 h-9 rounded-lg bg-[#F59E0B]/20 flex items-center justify-center flex-shrink-0">
+            <Megaphone className="w-5 h-5 text-[#F59E0B]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-xs font-bold text-[#F59E0B] block">تنبيه إداري من منصة OpenGym:</span>
+            <p className="text-sm font-bold text-white truncate">
+              {broadcastMsg}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleDismiss}
+          className="p-1.5 rounded-lg text-faint hover:text-strong hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          aria-label="إغلاق"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    )
+  }
+
+  // Urgency: final 3 days = red, otherwise green
+  const isUrgent = daysLeft !== null && daysLeft <= 3
 
   return (
     <AnimatePresence>

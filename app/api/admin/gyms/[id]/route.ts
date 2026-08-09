@@ -67,7 +67,8 @@ export async function PATCH(
     billingCycle, 
     nextBillingDate,
     trialEndsAt,
-    adminNotes
+    adminNotes,
+    broadcastBanner
   } = body
 
   // Validate plan price if provided
@@ -133,10 +134,9 @@ export async function PATCH(
       ...(nextBillingDate !== undefined && {
         nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
       }),
-      ...(trialEndsAt !== undefined && {
-        trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : null,
-      }),
+      ...(trialEndsAt ? { trialEndsAt: new Date(trialEndsAt) } : {}),
       ...(adminNotes !== undefined && { adminNotes }),
+      ...(broadcastBanner !== undefined && { broadcastBanner }),
     },
   })
 
