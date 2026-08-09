@@ -1,0 +1,14 @@
+{
+  "projectId": "5d69ece5-53a7-47f5-be08-e0680687132b",
+  "type": "frontend",
+  "name": "Member Login and Dashboard Attendance Verification",
+  "description": "Member logs into OpenGym via mobile member login page, verifies subscription status, and initiates attendance check-in",
+  "priority": "p0",
+  "planSteps": [
+    { "type": "action", "description": "Navigate to the homepage" },
+    { "type": "action", "description": "Click the member login button in header to open member login page" },
+    { "type": "action", "description": "Type member phone number and default password" },
+    { "type": "action", "description": "Click submit login button" },
+    { "type": "assertion", "description": "Verify member dashboard page renders with member name and subscription status" }
+  ]
+}
