@@ -19,9 +19,23 @@ export function MemberLogin() {
     setError('')
 
     try {
-      // Redirect to the specific gym login page with the phone pre-filled
-      const loginUrl = `/member-login?phone=${form.phone}`
-      router.push(loginUrl)
+      const res = await fetch('/api/member/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || 'فشل تسجيل الدخول')
+      }
+
+      // Store member data in localStorage
+      localStorage.setItem('memberData', JSON.stringify(data.member))
+      
+      // Redirect to member dashboard
+      router.push('/member/dashboard')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'حدث خطأ'
       setError(message)

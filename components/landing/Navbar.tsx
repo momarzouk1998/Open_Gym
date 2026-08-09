@@ -83,10 +83,18 @@ export function Navbar() {
           <ThemeToggle />
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Link
-              href="/login"
-              className="px-4 py-2 text-sm text-muted-c hover:text-strong transition-colors"
+              href="/member-login"
+              className="px-3.5 py-1.5 text-xs font-bold bg-[#22C55E]/15 border border-[#22C55E]/30 text-[#22C55E] rounded-lg hover:bg-[#22C55E]/25 transition-all flex items-center gap-1"
             >
-              تسجيل الدخول
+              📱 دخول المشتركين
+            </Link>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Link
+              href="/login"
+              className="px-3 py-2 text-sm text-muted-c hover:text-strong transition-colors"
+            >
+              دخول أصحاب الجيمات
             </Link>
           </motion.div>
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -144,17 +152,30 @@ export function Navbar() {
                 className="pt-2 border-t border-app"
               >
                 <Link
-                  href="/login"
+                  href="/member-login"
                   onClick={() => setOpen(false)}
-                  className="block py-3 px-4 text-muted-c hover:text-strong hover:surface rounded-lg transition-colors"
+                  className="block py-3 px-4 text-[#22C55E] font-bold hover:surface rounded-lg transition-colors text-center bg-[#22C55E]/10 border border-[#22C55E]/20"
                 >
-                  تسجيل الدخول
+                  📱 دخول المشتركين
                 </Link>
               </motion.li>
               <motion.li
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: (navLinks.length + 1) * 0.05 }}
+              >
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className="block py-3 px-4 text-muted-c hover:text-strong hover:surface rounded-lg transition-colors text-center"
+                >
+                  دخول أصحاب الجيمات
+                </Link>
+              </motion.li>
+              <motion.li
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: (navLinks.length + 2) * 0.05 }}
               >
                 <Link
                   href="/register"

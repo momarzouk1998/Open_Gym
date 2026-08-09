@@ -35,8 +35,14 @@ export async function getGymContext(
   const role = session.user.role || 'gym_owner'
 
   // 2. Load gym
-  const gym = await prisma.gym.findUnique({
-    where: { slug: gymSlug },
+  const decodedSlug = decodeURIComponent(gymSlug)
+  const gym = await prisma.gym.findFirst({
+    where: {
+      OR: [
+        { slug: gymSlug },
+        { slug: decodedSlug },
+      ],
+    },
   })
 
   if (!gym) {
@@ -84,8 +90,14 @@ export async function getGymContextApi(
   const userId = session.user.id
   const role = session.user.role || 'gym_owner'
 
-  const gym = await prisma.gym.findUnique({
-    where: { slug: gymSlug },
+  const decodedSlug = decodeURIComponent(gymSlug)
+  const gym = await prisma.gym.findFirst({
+    where: {
+      OR: [
+        { slug: gymSlug },
+        { slug: decodedSlug },
+      ],
+    },
   })
 
   if (!gym) {
