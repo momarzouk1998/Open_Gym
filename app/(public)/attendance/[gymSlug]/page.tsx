@@ -184,13 +184,7 @@ export default function AttendancePage() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-c">
-                ليس لديك حساب؟{' '}
-                <button
-                  onClick={() => router.push('/member-login')}
-                  className="text-[#22C55E] hover:text-[#22C55E]/80 transition-colors"
-                >
-                  تواصل مع صاحب الجيم
-                </button>
+                ليس لديك حساب؟ تواصل مع صاحب الجيم
               </p>
             </div>
           </>

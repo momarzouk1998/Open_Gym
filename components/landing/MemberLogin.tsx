@@ -121,13 +121,7 @@ export function MemberLogin() {
 
       <div className="mt-4 pt-4 border-t border-app text-center">
         <p className="text-sm text-muted-c">
-          عضو جديد؟{' '}
-          <button
-            onClick={() => router.push('/member-login')}
-            className="text-[#22C55E] hover:text-[#22C55E]/80 transition-colors font-medium"
-          >
-            تواصل مع صاحب الجيم
-          </button>
+          ليس لديك حساب؟ تواصل مع صاحب الجيم
         </p>
       </div>
     </div>
