@@ -60,7 +60,7 @@ export const PLANS = {
 export type PlanKey = keyof typeof PLANS
 
 /** Valid base prices for API validation — derived from PLANS automatically */
-export const VALID_PLAN_PRICES = Object.values(PLANS).map((p) => p.price)
+export const VALID_PLAN_PRICES: number[] = Object.values(PLANS).map((p) => p.price)
 
 /**
  * Returns the addon keys that should be assigned when a plan is selected.
