@@ -155,7 +155,7 @@ export function Hero() {
                   href="/register"
                   className="group flex items-center justify-center gap-2 w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-[#22C55E] text-white rounded-xl font-bold hover:bg-[#16A34A] transition-all hover:shadow-[0_0_20px_rgba(34,197,94,0.4)] border border-[#4ADE80]/50"
                 >
-                  ابدأ تجربة مجانية
+                  جرّب مجاناً 7 أيام
                   <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1.5 transition-transform" />
                 </Link>
               </motion.div>

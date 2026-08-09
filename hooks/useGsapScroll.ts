@@ -65,10 +65,15 @@ export function useGsapScroll() {
     })
 
     return () => {
+      tween.scrollTrigger?.kill()
       tween.kill()
-      glowTweens.forEach((t) => t.kill())
-      ScrollTrigger.getAll().forEach((st) => st.kill())
-      progress.remove()
+      glowTweens.forEach((t) => {
+        t.scrollTrigger?.kill()
+        t.kill()
+      })
+      if (progress && progress.parentNode) {
+        progress.remove()
+      }
     }
   }, [])
 }

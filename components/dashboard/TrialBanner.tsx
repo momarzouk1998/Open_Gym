@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Sparkles, X, Clock, ArrowLeft } from 'lucide-react'
 
 /**
- * Trial banner shown at the top of the dashboard during the 14-day trial.
+ * Trial banner shown at the top of the dashboard during the 7-day trial.
  *
  * - Counts days remaining from gym.trialEndsAt
  * - Dismissible for the current session (sessionStorage)

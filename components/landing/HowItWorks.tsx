@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'motion/react'
-import { useRef } from 'react'
 import { UserPlus, ClipboardList, LineChart } from 'lucide-react'
 
 const steps = [
@@ -26,10 +25,8 @@ const steps = [
 ]
 
 export function HowItWorks() {
-  const sectionRef = useRef<HTMLElement>(null)
-
   return (
-    <section ref={sectionRef} id="how" className="py-24 relative">
+    <section id="how" className="py-24 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
