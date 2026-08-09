@@ -135,7 +135,7 @@ export default function MembersPage() {
           </div>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as 'active' | 'inactive' | '')}
             className="bg-app border border-app rounded-xl py-3 px-4 text-strong focus:outline-none focus:border-[#22C55E]/50 sm:w-44"
           >
             <option value="">كل الحالات</option>

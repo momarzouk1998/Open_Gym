@@ -23,7 +23,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'الاشتراك غير موجود' }, { status: 404 })
   }
 
-  let updateData: any = {}
+  let updateData: Record<string, unknown> = {}
 
   if (action === 'freeze') {
     if (sub.status === 'frozen') {
