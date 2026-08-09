@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   User, 
@@ -9,10 +9,10 @@ import {
   Lock, 
   CheckCircle2, 
   AlertCircle,
-  Calendar,
   CreditCard,
   Loader2,
-  X
+  X,
+  Camera
 } from 'lucide-react'
 
 interface MemberData {
@@ -42,13 +42,15 @@ export default function MemberDashboard() {
   const [loading, setLoading] = useState(true)
   const [attendanceMessage, setAttendanceMessage] = useState('')
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showCameraModal, setShowCameraModal] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   })
   const [passwordLoading, setPasswordLoading] = useState(false)
-  const [scanning, setScanning] = useState(false)
+  const [checkingIn, setCheckingIn] = useState(false)
+  const scannerRef = useRef<any>(null)
 
   useEffect(() => {
     const memberData = localStorage.getItem('memberData')
@@ -56,38 +58,80 @@ export default function MemberDashboard() {
       router.push('/member-login')
       return
     }
-    setMember(JSON.parse(memberData))
+    try {
+      setMember(JSON.parse(memberData))
+    } catch (e) {
+      router.push('/member-login')
+      return
+    }
     setLoading(false)
   }, [router])
+
+  // Camera QR Scanner instance for reading the Gym's wall QR code
+  useEffect(() => {
+    if (showCameraModal) {
+      import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
+        const scanner = new Html5QrcodeScanner(
+          'gym-qr-reader',
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          /* verbose= */ false
+        )
+        scannerRef.current = scanner
+        scanner.render(
+          (decodedText: string) => {
+            scanner.clear().catch(() => {})
+            setShowCameraModal(false)
+            handleScanGymBarcode(decodedText)
+          },
+          () => {
+            // Ignore frame scan failures
+          }
+        )
+      }).catch((err) => {
+        console.error('Failed to load html5-qrcode:', err)
+        setAttendanceMessage('تعذر فتح الكاميرا. يمكنك استخدام التسجيل المباشر.')
+      })
+    }
+
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => {})
+      }
+    }
+  }, [showCameraModal])
 
   const handleLogout = () => {
     localStorage.removeItem('memberData')
     router.push('/member-login')
   }
 
-  const startCamera = async () => {
-    // For now, just use manual attendance inside the gym
-    // QR scanning can be added later with proper library integration
-    setAttendanceMessage('استخدم زر "تسجيل بدون مسح" داخل الجيم')
-  }
-
-  const stopCamera = () => {
-    setScanning(false)
-  }
-
-  const handleScanGymBarcode = async (gymBarcode: string) => {
+  const handleScanGymBarcode = async (scannedText: string) => {
     if (!member) return
-    setAttendanceMessage('جاري التحقق...')
+    setCheckingIn(true)
+    setAttendanceMessage('جاري التحقق وسحب بيانات الحضور...')
 
     try {
-      // Verify it's the correct gym barcode
-      if (gymBarcode !== member.gym.gymBarcode) {
-        setAttendanceMessage('هذا ليس باركود الجيم الصحيح')
+      // Decode if text is a full URL like https://opengym.openappo.com/attendance/gymslug or raw barcode
+      let gymSlugOrBarcode = scannedText.trim()
+      if (gymSlugOrBarcode.includes('/attendance/')) {
+        const parts = gymSlugOrBarcode.split('/attendance/')
+        gymSlugOrBarcode = decodeURIComponent(parts[parts.length - 1])
+      }
+
+      // Verify matching gym barcode or slug
+      if (
+        member.gym.gymBarcode && 
+        gymSlugOrBarcode !== member.gym.gymBarcode && 
+        gymSlugOrBarcode !== member.gym.slug &&
+        !scannedText.includes(member.gym.slug)
+      ) {
+        setAttendanceMessage('عذراً، هذا الباركود لا ينتمي لـ ' + member.gym.name)
+        setCheckingIn(false)
         return
       }
 
-      // Record attendance using the correct API format
-      const res = await fetch(`/api/gyms/${member.gym.slug}/attendance`, {
+      // Record attendance
+      const res = await fetch(`/api/gyms/${encodeURIComponent(member.gym.slug)}/attendance`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -97,23 +141,22 @@ export default function MemberDashboard() {
 
       const data = await res.json()
       if (res.ok) {
-        setAttendanceMessage('تم تسجيل حضورك بنجاح!')
+        setAttendanceMessage('✅ تم تسجيل حضورك بنجاح!')
       } else {
         setAttendanceMessage(data.error || 'فشل تسجيل الحضور')
       }
     } catch (err) {
-      setAttendanceMessage('حدث خطأ في تسجيل الحضور')
+      setAttendanceMessage('حدث خطأ أثناء الاتصال بالسيرفر')
+    } finally {
+      setCheckingIn(false)
     }
 
-    setTimeout(() => setAttendanceMessage(''), 3000)
+    setTimeout(() => setAttendanceMessage(''), 4000)
   }
 
-  const handleManualAttendance = () => {
-    if (!member?.gym.gymBarcode) {
-      setAttendanceMessage('لم يتم تعيين باركود للجيم')
-      return
-    }
-    handleScanGymBarcode(member.gym.gymBarcode)
+  const handleDirectAttendance = () => {
+    if (!member) return
+    handleScanGymBarcode(member.gym.gymBarcode || member.gym.slug)
   }
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -158,7 +201,7 @@ export default function MemberDashboard() {
       setPasswordLoading(false)
     }
 
-    setTimeout(() => setAttendanceMessage(''), 3000)
+    setTimeout(() => setAttendanceMessage(''), 4000)
   }
 
   if (loading) {
@@ -180,11 +223,12 @@ export default function MemberDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-cairo font-bold text-2xl text-white">مرحباً، {member.fullName}</h1>
-            <p className="text-sm text-muted-c">{member.gym.name}</p>
+            <p className="text-sm text-[#22C55E] font-medium">{member.gym.name}</p>
           </div>
           <button
             onClick={handleLogout}
             className="p-2 rounded-xl bg-app hover:surface transition-colors"
+            title="تسجيل الخروج"
           >
             <LogOut className="w-5 h-5 text-muted-c" />
           </button>
@@ -193,7 +237,7 @@ export default function MemberDashboard() {
         {/* Member Info Card */}
         <div className="glass-card p-6 rounded-2xl space-y-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#22C55E]/10 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-[#22C55E]/10 flex items-center justify-center border border-[#22C55E]/30">
               <User className="w-8 h-8 text-[#22C55E]" />
             </div>
             <div>
@@ -206,67 +250,61 @@ export default function MemberDashboard() {
             </div>
           </div>
 
-          {/* Member Barcode */}
-          {member.barcode && (
-            <div className="bg-app p-4 rounded-xl">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-soft">باركودك</span>
-                <QrCode className="w-4 h-4 text-[#22C55E]" />
-              </div>
-              <p className="text-lg font-mono text-strong text-center py-2" dir="ltr">
-                {member.barcode}
-              </p>
-            </div>
-          )}
-
           {/* Subscription Status */}
           {activeSubscription ? (
-            <div className="bg-[#22C55E]/10 p-4 rounded-xl">
+            <div className="bg-[#22C55E]/10 p-4 rounded-xl border border-[#22C55E]/20">
               <div className="flex items-center gap-2 mb-1">
                 <CreditCard className="w-4 h-4 text-[#22C55E]" />
                 <span className="text-sm text-soft">الاشتراك الحالي</span>
               </div>
-              <p className="font-cairo font-bold text-[#22C55E]">
+              <p className="font-cairo font-bold text-[#22C55E] text-lg">
                 {activeSubscription.plan.name}
               </p>
-              <p className="text-sm text-muted-c">
-                ينتهي: {new Date(activeSubscription.endDate).toLocaleDateString('ar-EG')}
+              <p className="text-xs text-muted-c mt-1">
+                ينتهي في: {new Date(activeSubscription.endDate).toLocaleDateString('ar-EG')}
               </p>
             </div>
           ) : (
-            <div className="bg-red-500/10 p-4 rounded-xl">
-              <p className="text-sm text-red-400">لا يوجد اشتراك نشط</p>
+            <div className="bg-red-500/10 p-4 rounded-xl border border-red-500/20">
+              <p className="text-sm text-red-400">عذراً، لا يوجد اشتراك نشط حالياً</p>
             </div>
           )}
         </div>
 
-        {/* Attendance Section */}
-        <div className="glass-card p-6 rounded-2xl">
-          <h3 className="font-cairo font-bold text-lg text-white mb-4">تسجيل الحضور</h3>
+        {/* Attendance Section — Member scans Gym's printed QR barcode */}
+        <div className="glass-card p-6 rounded-2xl space-y-4">
+          <h3 className="font-cairo font-bold text-lg text-white">تسجيل الحضور في الجيم</h3>
           
           <div className="space-y-3">
             <button
-              onClick={handleManualAttendance}
-              className="w-full py-3 bg-[#22C55E] text-white rounded-xl font-cairo font-bold hover:bg-[#22C55E]/90 transition-colors flex items-center justify-center gap-2"
+              onClick={() => setShowCameraModal(true)}
+              disabled={checkingIn}
+              className="w-full py-3.5 bg-[#22C55E] text-white rounded-xl font-cairo font-bold hover:bg-[#22C55E]/90 transition-colors flex items-center justify-center gap-2 text-base shadow-lg shadow-[#22C55E]/20"
             >
-              <QrCode className="w-5 h-5" />
-              تسجيل الحضور (داخل الجيم)
+              <Camera className="w-5 h-5" />
+              امسح باركود الجيم (كاميرا الموبايل)
             </button>
-            <div className="text-center text-xs text-muted-c">
-              أو امسح باركود الجيم من أي تطبيق ماسح
-            </div>
+
+            <button
+              onClick={handleDirectAttendance}
+              disabled={checkingIn}
+              className="w-full py-3 bg-app border border-app text-white rounded-xl font-cairo font-semibold hover:surface transition-colors flex items-center justify-center gap-2 text-sm"
+            >
+              <QrCode className="w-4 h-4 text-[#22C55E]" />
+              تسجيل بنقرة واحدة (داخل الجيم)
+            </button>
           </div>
 
           {attendanceMessage && (
-            <div className={`mt-4 p-4 rounded-xl flex items-center gap-2 ${
+            <div className={`p-4 rounded-xl flex items-center gap-2 ${
               attendanceMessage.includes('نجاح') 
-                ? 'bg-green-500/10 text-green-400' 
-                : 'bg-red-500/10 text-red-400'
+                ? 'bg-green-500/10 border border-green-500/20 text-green-400' 
+                : 'bg-red-500/10 border border-red-500/20 text-red-400'
             }`}>
               {attendanceMessage.includes('نجاح') ? (
-                <CheckCircle2 className="w-5 h-5" />
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
               ) : (
-                <AlertCircle className="w-5 h-5" />
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
               )}
               <p className="text-sm">{attendanceMessage}</p>
             </div>
@@ -277,12 +315,35 @@ export default function MemberDashboard() {
         <div className="glass-card p-6 rounded-2xl">
           <button
             onClick={() => setShowPasswordModal(true)}
-            className="w-full py-3 bg-app border border-app text-white rounded-xl font-cairo font-bold hover:surface transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3 bg-app border border-app text-white rounded-xl font-cairo font-bold hover:surface transition-colors flex items-center justify-center gap-2 text-sm"
           >
-            <Lock className="w-5 h-5" />
+            <Lock className="w-4 h-4" />
             تغيير كلمة المرور
           </button>
         </div>
+
+        {/* Camera QR Modal */}
+        {showCameraModal && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div className="glass-card p-6 rounded-2xl w-full max-w-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-cairo font-bold text-white text-base">وجه كاميرا الموبايل للباركود المعلق</h3>
+                <button
+                  onClick={() => setShowCameraModal(false)}
+                  className="text-muted-c hover:text-white p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div id="gym-qr-reader" className="overflow-hidden rounded-xl bg-black min-h-[250px]" />
+
+              <p className="text-xs text-muted-c text-center">
+                امسح الـ QR المعلق على حائط الجيم لتسجيل حضورك تلقائياً
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Password Modal */}
         {showPasswordModal && (
