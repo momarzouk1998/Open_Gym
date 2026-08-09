@@ -9,7 +9,7 @@ import { Logo } from '@/components/Logo'
 
 const navLinks = [
   { href: '#features', label: 'المميزات' },
-  { href: '#pricing', label: 'الأسعار' },
+  { href: '#pricing', label: 'التجربة المجانية' },
   { href: '#how', label: 'كيف يشتغل' },
   { href: '#contact', label: 'تواصل معنا' },
 ]

@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useReducedMotion } from 'motion/react'
+import { motion } from 'motion/react'
 import { Star, Quote } from 'lucide-react'
 
 const testimonials = [

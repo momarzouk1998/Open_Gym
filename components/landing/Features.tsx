@@ -77,12 +77,8 @@ export function Features() {
 
   return (
     <section id="features" className="py-24 relative overflow-hidden">
-      {/* Background glow */}
-      <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#22C55E]/5 rounded-full blur-[150px] pointer-events-none"
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 8, repeat: shouldReduceMotion ? 0 : Infinity }}
-      />
+      {/* Background glow — static when reduced motion preferred */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#22C55E]/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
@@ -122,11 +118,13 @@ export function Features() {
             <motion.div
               key={feature.title}
               variants={cardVariants}
-              whileHover={{ y: -8, transition: { duration: 0.2 } }}
+              // Respect reduced motion: disable lift on hover
+              whileHover={shouldReduceMotion ? undefined : { y: -8, transition: { duration: 0.2 } }}
               className="glass-card p-8 rounded-2xl hover:border-[#22C55E]/30 transition-colors group"
             >
               <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
+                // Respect reduced motion: disable icon scale+rotate on hover
+                whileHover={shouldReduceMotion ? undefined : { scale: 1.1, rotate: 5 }}
                 transition={{ type: 'spring', stiffness: 300 }}
                 className={`w-14 h-14 rounded-xl ${feature.bg} flex items-center justify-center mb-6`}
               >

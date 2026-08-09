@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRef, useEffect, lazy, Suspense } from 'react'
-import { motion, useScroll, useTransform, useReducedMotion } from 'motion/react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { ArrowLeft, Play, Users, CreditCard, TrendingUp, Sparkles, Activity } from 'lucide-react'
 
 const Hero3D = lazy(() =>
@@ -203,13 +203,12 @@ export function Hero() {
               {/* Mock header */}
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-app">
                 <div className="flex items-center gap-3">
-                  <motion.div
-                    animate={{ rotate: [0, -5, 5, 0] }}
-                    transition={{ duration: 5, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut' }}
-                    className="w-10 h-10 rounded-xl bg-[#22C55E]/20 flex items-center justify-center border border-[#22C55E]/40"
+                  <div
+                    className="w-10 h-10 rounded-xl bg-[#22C55E]/20 flex items-center justify-center border border-[#22C55E]/40 motion-safe:animate-float"
+                    style={{ animationDuration: '5s' }}
                   >
                     <Users className="w-5 h-5 text-[#22C55E]" />
-                  </motion.div>
+                  </div>
                   <div>
                     <h3 className="font-bold text-strong text-sm sm:text-base">جيم القوة والأبطال</h3>
                     <p className="text-xs text-[#22C55E]">لوحة التحكم المباشرة</p>
@@ -274,17 +273,13 @@ export function Hero() {
               </motion.div>
             </motion.div>
 
-            {/* Floating badges */}
-            <motion.div
-              animate={{ y: [-10, 10, -10] }}
-              transition={{ duration: 4, repeat: shouldReduceMotion ? 0 : Infinity, ease: 'easeInOut' }}
-              className="absolute -top-6 -right-6 lg:-right-10 glass-card px-4 py-3 rounded-2xl z-20 shadow-lg"
-            >
+            {/* Floating badge — CSS float animation respects prefers-reduced-motion */}
+            <div className="absolute -top-6 -right-6 lg:-right-10 glass-card px-4 py-3 rounded-2xl z-20 shadow-lg motion-safe:animate-float">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-yellow-500" />
                 <span className="text-xs sm:text-sm font-bold text-strong">نمو +25%</span>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
 

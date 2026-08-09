@@ -48,6 +48,14 @@ export async function POST(request: Request) {
       )
     }
 
+    const phoneRegex = /^01[0-9]{9}$/
+    if (!phoneRegex.test(ownerPhone.trim())) {
+      return NextResponse.json(
+        { error: 'رقم التليفون غير صحيح — مثال: 01012345678' },
+        { status: 400 }
+      )
+    }
+
     if (ownerPassword.length < 6) {
       return NextResponse.json(
         { error: 'كلمة المرور لازم 6 حروف على الأقل' },
