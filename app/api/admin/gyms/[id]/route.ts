@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { VALID_PLAN_PRICES, getAddonsForPlan, getPlanByPrice } from '@/lib/billing'
 import type { AddonKey, GymStatus, BillingCycle } from '@prisma/client'
 
 // GET /api/admin/gyms/[id] — single gym detail for super_admin
@@ -63,13 +64,23 @@ export async function PATCH(
   const body = await request.json()
   const { basePlanPrice, addons, status, billingCycle, nextBillingDate } = body
 
-  // Validate plan price if provided
+  // Validate plan price against billing.ts (single source of truth)
   if (basePlanPrice !== undefined) {
-    if (typeof basePlanPrice !== 'number' || basePlanPrice < 0) {
+    if (typeof basePlanPrice !== 'number' || !VALID_PLAN_PRICES.includes(basePlanPrice)) {
       return NextResponse.json(
-        { error: 'سعر الباقة غير صالح' },
+        { error: `سعر الباقة غير صالح. الأسعار المتاحة: ${VALID_PLAN_PRICES.join('، ')} ج` },
         { status: 400 }
       )
+    }
+  }
+
+  // If plan changes but addons not explicitly provided, auto-assign correct addons:
+  // Pro → all addons. Starter → clear addons (admin can override by passing addons explicitly).
+  let resolvedAddons: AddonKey[] | undefined = addons !== undefined ? (addons as AddonKey[]) : undefined
+  if (basePlanPrice !== undefined && addons === undefined) {
+    const planKey = getPlanByPrice(basePlanPrice)
+    if (planKey) {
+      resolvedAddons = getAddonsForPlan(planKey) as AddonKey[]
     }
   }
 
@@ -93,7 +104,7 @@ export async function PATCH(
     where: { id },
     data: {
       ...(basePlanPrice !== undefined && { basePlanPrice }),
-      ...(addons !== undefined && { addons: addons as AddonKey[] }),
+      ...(resolvedAddons !== undefined && { addons: resolvedAddons }),
       ...(status !== undefined && { status: status as GymStatus }),
       ...(billingCycle !== undefined && { billingCycle: billingCycle as BillingCycle }),
       ...(nextBillingDate !== undefined && {
