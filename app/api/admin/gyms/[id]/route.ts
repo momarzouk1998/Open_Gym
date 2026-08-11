@@ -4,6 +4,30 @@ import { prisma } from '@/lib/prisma'
 import { VALID_PLAN_PRICES, getAddonsForPlan, getPlanByPrice } from '@/lib/billing'
 import type { AddonKey, GymStatus, BillingCycle } from '@prisma/client'
 
+// Helper to find gym by id OR slug OR decoded slug
+async function findGymByIdOrSlug(rawId: string) {
+  const decodedId = decodeURIComponent(rawId)
+  return prisma.gym.findFirst({
+    where: {
+      OR: [
+        { id: rawId },
+        { id: decodedId },
+        { slug: rawId },
+        { slug: decodedId },
+      ],
+    },
+    include: {
+      _count: {
+        select: {
+          members: true,
+          subscriptions: true,
+          branches: true,
+        },
+      },
+    },
+  })
+}
+
 // GET /api/admin/gyms/[id] — single gym detail for super_admin
 export async function GET(
   request: Request,
@@ -18,18 +42,7 @@ export async function GET(
   }
 
   const { id } = await params
-  const gym = await prisma.gym.findUnique({
-    where: { id },
-    include: {
-      _count: {
-        select: {
-          members: true,
-          subscriptions: true,
-          branches: true,
-        },
-      },
-    },
-  })
+  const gym = await findGymByIdOrSlug(id)
 
   if (!gym) {
     return NextResponse.json({ error: 'الجيم غير موجود' }, { status: 404 })
@@ -52,6 +65,11 @@ export async function PATCH(
   }
 
   const { id } = await params
+  const existingGym = await findGymByIdOrSlug(id)
+  if (!existingGym) {
+    return NextResponse.json({ error: 'الجيم غير موجود' }, { status: 404 })
+  }
+
   const body = await request.json()
   const { 
     name, 
@@ -107,18 +125,15 @@ export async function PATCH(
   }
 
   // If ownerEmail is changing, update associated User model email as well
-  if (ownerEmail) {
-    const existingGym = await prisma.gym.findUnique({ where: { id }, select: { ownerEmail: true } })
-    if (existingGym && existingGym.ownerEmail !== ownerEmail) {
-      await prisma.user.updateMany({
-        where: { email: existingGym.ownerEmail },
-        data: { email: ownerEmail },
-      })
-    }
+  if (ownerEmail && existingGym.ownerEmail !== ownerEmail) {
+    await prisma.user.updateMany({
+      where: { email: existingGym.ownerEmail },
+      data: { email: ownerEmail },
+    })
   }
 
   const updated = await prisma.gym.update({
-    where: { id },
+    where: { id: existingGym.id },
     data: {
       ...(name !== undefined && { name }),
       ...(ownerName !== undefined && { ownerName }),
@@ -157,10 +172,14 @@ export async function DELETE(
   }
 
   const { id } = await params
+  const existingGym = await findGymByIdOrSlug(id)
+  if (!existingGym) {
+    return NextResponse.json({ error: 'الجيم غير موجود' }, { status: 404 })
+  }
 
   try {
     await prisma.gym.delete({
-      where: { id },
+      where: { id: existingGym.id },
     })
     return NextResponse.json({ success: true })
   } catch (error) {

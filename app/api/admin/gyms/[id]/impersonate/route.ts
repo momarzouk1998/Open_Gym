@@ -16,9 +16,18 @@ export async function POST(
     return NextResponse.json({ error: 'ممنوع' }, { status: 403 })
   }
 
-  const { id } = await params
-  const gym = await prisma.gym.findUnique({
-    where: { id },
+  const { id: rawId } = await params
+  const decodedId = decodeURIComponent(rawId)
+
+  const gym = await prisma.gym.findFirst({
+    where: {
+      OR: [
+        { id: rawId },
+        { id: decodedId },
+        { slug: rawId },
+        { slug: decodedId },
+      ],
+    },
     select: { id: true, ownerEmail: true, name: true },
   })
 
