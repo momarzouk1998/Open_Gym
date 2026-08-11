@@ -101,6 +101,8 @@ export default function AdminGymEditPage() {
   const [billingCycle, setBillingCycle] = useState('monthly')
   const [nextBillingDate, setNextBillingDate] = useState('')
   const [trialEndsAt, setTrialEndsAt] = useState('')
+  const [gracePeriodDays, setGracePeriodDays] = useState<number>(3)
+  const [warningDays, setWarningDays] = useState<number>(3)
 
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -135,6 +137,8 @@ export default function AdminGymEditPage() {
           setBillingCycle(g.billingCycle || 'monthly')
           setNextBillingDate(g.nextBillingDate ? g.nextBillingDate.split('T')[0] : '')
           setTrialEndsAt(g.trialEndsAt ? g.trialEndsAt.split('T')[0] : '')
+          setGracePeriodDays(g.gracePeriodDays ?? 3)
+          setWarningDays(g.warningDays ?? 3)
         } else if (data.error) {
           setError(data.error)
         }
@@ -177,6 +181,8 @@ export default function AdminGymEditPage() {
           billingCycle,
           nextBillingDate: nextBillingDate || null,
           trialEndsAt: trialEndsAt || null,
+          gracePeriodDays,
+          warningDays,
         }),
       })
       const data = await res.json()
@@ -193,6 +199,8 @@ export default function AdminGymEditPage() {
               billingCycle,
               nextBillingDate,
               trialEndsAt,
+              gracePeriodDays,
+              warningDays,
             }
           : prev
       )
@@ -719,7 +727,7 @@ export default function AdminGymEditPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2 text-soft">نهاية التجربة / السماح</label>
+              <label className="block text-sm font-medium mb-2 text-soft">نهاية التجربة / التاريخ</label>
               <input
                 type="date"
                 dir="ltr"
@@ -727,6 +735,36 @@ export default function AdminGymEditPage() {
                 onChange={(e) => setTrialEndsAt(e.target.value)}
                 className={`${inputClass} text-left`}
               />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4 pt-2">
+            <div>
+              <label className="block text-sm font-medium mb-2 text-soft">فترة السماح بعد الانتهاء (بالأيام)</label>
+              <input
+                type="number"
+                min={0}
+                max={60}
+                value={gracePeriodDays}
+                onChange={(e) => setGracePeriodDays(Number(e.target.value))}
+                className={inputClass}
+                placeholder="3"
+              />
+              <p className="text-xs text-muted-c mt-1">عدد الأيام المستمرة بعد انتهاء الاشتراك قبل إيقاف النظام</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2 text-soft">بدء التنبيه المبكر قبل الانتهاء (بالأيام)</label>
+              <input
+                type="number"
+                min={0}
+                max={30}
+                value={warningDays}
+                onChange={(e) => setWarningDays(Number(e.target.value))}
+                className={inputClass}
+                placeholder="3"
+              />
+              <p className="text-xs text-muted-c mt-1">عدد الأيام التي يظهر فيها تنبيه التجديد مسبقاً</p>
             </div>
           </div>
         </div>

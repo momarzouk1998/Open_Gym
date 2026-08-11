@@ -31,7 +31,7 @@ async function findGymByIdOrSlug(rawId: string) {
     })
   } catch (err) {
     console.warn('Full findFirst failed, trying fallback select:', err)
-    // Fallback select excluding broadcastBanner if column is not created yet
+    // Fallback select excluding dynamic columns if not updated on DB yet
     return await prisma.gym.findFirst({
       where: whereClause,
       select: {
@@ -131,7 +131,9 @@ export async function PATCH(
     nextBillingDate,
     trialEndsAt,
     adminNotes,
-    broadcastBanner
+    broadcastBanner,
+    gracePeriodDays,
+    warningDays
   } = body
 
   // Validate plan price if provided
@@ -194,14 +196,12 @@ export async function PATCH(
     }),
     ...(trialEndsAt ? { trialEndsAt: new Date(trialEndsAt) } : {}),
     ...(adminNotes !== undefined && { adminNotes }),
+    ...(gracePeriodDays !== undefined && { gracePeriodDays: Number(gracePeriodDays) }),
+    ...(warningDays !== undefined && { warningDays: Number(warningDays) }),
   }
 
   if (broadcastBanner !== undefined) {
-    try {
-      updateData.broadcastBanner = broadcastBanner
-    } catch {
-      // Ignore if column doesn't exist yet
-    }
+    updateData.broadcastBanner = broadcastBanner
   }
 
   try {
@@ -211,8 +211,10 @@ export async function PATCH(
     })
     return NextResponse.json({ success: true, gym: updated })
   } catch (err) {
-    // Retry without broadcastBanner if column not created
+    console.warn('Update failed, retrying without optional fields:', err)
     delete updateData.broadcastBanner
+    delete updateData.gracePeriodDays
+    delete updateData.warningDays
     const updated = await prisma.gym.update({
       where: { id: existingGym.id },
       data: updateData,

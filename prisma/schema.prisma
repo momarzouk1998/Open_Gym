@@ -98,6 +98,8 @@ model Gym {
   timezone        String      @default("Africa/Cairo")
   adminNotes      String?     @map("admin_notes")
   broadcastBanner String?     @map("broadcast_banner")
+  gracePeriodDays Int         @default(3) @map("grace_period_days")
+  warningDays     Int         @default(3) @map("warning_days")
   gymBarcode      String?     @unique @map("gym_barcode")
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
