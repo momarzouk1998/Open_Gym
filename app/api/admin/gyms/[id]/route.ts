@@ -33,22 +33,30 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth()
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'غير مسجّل الدخول' }, { status: 401 })
-  }
-  if (session.user.role !== 'super_admin') {
-    return NextResponse.json({ error: 'ممنوع' }, { status: 403 })
-  }
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'غير مسجّل الدخول' }, { status: 401 })
+    }
+    if (session.user.role !== 'super_admin') {
+      return NextResponse.json({ error: 'ممنوع' }, { status: 403 })
+    }
 
-  const { id } = await params
-  const gym = await findGymByIdOrSlug(id)
+    const { id } = await params
+    const gym = await findGymByIdOrSlug(id)
 
-  if (!gym) {
-    return NextResponse.json({ error: 'الجيم غير موجود' }, { status: 404 })
+    if (!gym) {
+      return NextResponse.json({ error: 'الجيم غير موجود' }, { status: 404 })
+    }
+
+    return NextResponse.json({ gym })
+  } catch (err) {
+    console.error('Error fetching admin gym detail:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'حدث خطأ في السيرفر' },
+      { status: 500 }
+    )
   }
-
-  return NextResponse.json({ gym })
 }
 
 // PATCH /api/admin/gyms/[id] — super_admin edits a gym's details, plan, addons, status, billing, dates & notes

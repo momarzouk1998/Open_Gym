@@ -135,10 +135,15 @@ export default function AdminGymEditPage() {
           setBillingCycle(g.billingCycle || 'monthly')
           setNextBillingDate(g.nextBillingDate ? g.nextBillingDate.split('T')[0] : '')
           setTrialEndsAt(g.trialEndsAt ? g.trialEndsAt.split('T')[0] : '')
+        } else if (data.error) {
+          setError(data.error)
         }
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'فشل الاتصال بالسيرفر')
+        setLoading(false)
+      })
   }, [gymId])
 
   const toggleAddon = (key: string) => {
@@ -316,8 +321,14 @@ export default function AdminGymEditPage() {
 
   if (!gym) {
     return (
-      <div className="text-center py-20 text-muted-c">
-        <p>الجيم غير موجود</p>
+      <div className="text-center py-20 space-y-4">
+        <p className="text-lg text-muted-c">{error || 'الجيم غير موجود'}</p>
+        <button
+          onClick={() => router.push('/admin/gyms')}
+          className="px-4 py-2 bg-app border border-app text-white rounded-xl text-sm font-medium hover:surface transition-colors"
+        >
+          ← العودة لقائمة الجيمات
+        </button>
       </div>
     )
   }
