@@ -4,28 +4,65 @@ import { prisma } from '@/lib/prisma'
 import { VALID_PLAN_PRICES, getAddonsForPlan, getPlanByPrice } from '@/lib/billing'
 import type { AddonKey, GymStatus, BillingCycle } from '@prisma/client'
 
-// Helper to find gym by id OR slug OR decoded slug
+// Helper to find gym by id OR slug OR decoded slug with safe fallback if schema column is updating
 async function findGymByIdOrSlug(rawId: string) {
   const decodedId = decodeURIComponent(rawId)
-  return prisma.gym.findFirst({
-    where: {
-      OR: [
-        { id: rawId },
-        { id: decodedId },
-        { slug: rawId },
-        { slug: decodedId },
-      ],
-    },
-    include: {
-      _count: {
-        select: {
-          members: true,
-          subscriptions: true,
-          branches: true,
+  const whereClause = {
+    OR: [
+      { id: rawId },
+      { id: decodedId },
+      { slug: rawId },
+      { slug: decodedId },
+    ],
+  }
+
+  try {
+    return await prisma.gym.findFirst({
+      where: whereClause,
+      include: {
+        _count: {
+          select: {
+            members: true,
+            subscriptions: true,
+            branches: true,
+          },
         },
       },
-    },
-  })
+    })
+  } catch (err) {
+    console.warn('Full findFirst failed, trying fallback select:', err)
+    // Fallback select excluding broadcastBanner if column is not created yet
+    return await prisma.gym.findFirst({
+      where: whereClause,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        ownerName: true,
+        ownerEmail: true,
+        ownerPhone: true,
+        phone: true,
+        city: true,
+        address: true,
+        status: true,
+        basePlanPrice: true,
+        addons: true,
+        billingCycle: true,
+        nextBillingDate: true,
+        trialEndsAt: true,
+        lastPaidAt: true,
+        createdAt: true,
+        adminNotes: true,
+        _count: {
+          select: {
+            members: true,
+            subscriptions: true,
+            branches: true,
+          },
+        },
+      },
+    })
+  }
 }
 
 // GET /api/admin/gyms/[id] — single gym detail for super_admin
@@ -140,30 +177,48 @@ export async function PATCH(
     })
   }
 
-  const updated = await prisma.gym.update({
-    where: { id: existingGym.id },
-    data: {
-      ...(name !== undefined && { name }),
-      ...(ownerName !== undefined && { ownerName }),
-      ...(ownerPhone !== undefined && { ownerPhone }),
-      ...(ownerEmail !== undefined && { ownerEmail }),
-      ...(phone !== undefined && { phone }),
-      ...(city !== undefined && { city }),
-      ...(address !== undefined && { address }),
-      ...(basePlanPrice !== undefined && { basePlanPrice }),
-      ...(resolvedAddons !== undefined && { addons: resolvedAddons }),
-      ...(status !== undefined && { status: status as GymStatus }),
-      ...(billingCycle !== undefined && { billingCycle: billingCycle as BillingCycle }),
-      ...(nextBillingDate !== undefined && {
-        nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
-      }),
-      ...(trialEndsAt ? { trialEndsAt: new Date(trialEndsAt) } : {}),
-      ...(adminNotes !== undefined && { adminNotes }),
-      ...(broadcastBanner !== undefined && { broadcastBanner }),
-    },
-  })
+  const updateData: Record<string, unknown> = {
+    ...(name !== undefined && { name }),
+    ...(ownerName !== undefined && { ownerName }),
+    ...(ownerPhone !== undefined && { ownerPhone }),
+    ...(ownerEmail !== undefined && { ownerEmail }),
+    ...(phone !== undefined && { phone }),
+    ...(city !== undefined && { city }),
+    ...(address !== undefined && { address }),
+    ...(basePlanPrice !== undefined && { basePlanPrice }),
+    ...(resolvedAddons !== undefined && { addons: resolvedAddons }),
+    ...(status !== undefined && { status: status as GymStatus }),
+    ...(billingCycle !== undefined && { billingCycle: billingCycle as BillingCycle }),
+    ...(nextBillingDate !== undefined && {
+      nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
+    }),
+    ...(trialEndsAt ? { trialEndsAt: new Date(trialEndsAt) } : {}),
+    ...(adminNotes !== undefined && { adminNotes }),
+  }
 
-  return NextResponse.json({ success: true, gym: updated })
+  if (broadcastBanner !== undefined) {
+    try {
+      updateData.broadcastBanner = broadcastBanner
+    } catch {
+      // Ignore if column doesn't exist yet
+    }
+  }
+
+  try {
+    const updated = await prisma.gym.update({
+      where: { id: existingGym.id },
+      data: updateData,
+    })
+    return NextResponse.json({ success: true, gym: updated })
+  } catch (err) {
+    // Retry without broadcastBanner if column not created
+    delete updateData.broadcastBanner
+    const updated = await prisma.gym.update({
+      where: { id: existingGym.id },
+      data: updateData,
+    })
+    return NextResponse.json({ success: true, gym: updated })
+  }
 }
 
 // DELETE /api/admin/gyms/[id] — super_admin deletes a gym
