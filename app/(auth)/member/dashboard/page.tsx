@@ -50,7 +50,6 @@ export default function MemberDashboard() {
   })
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [checkingIn, setCheckingIn] = useState(false)
-  const [isCheckedIn, setIsCheckedIn] = useState(false)
   const scannerRef = useRef<any>(null)
 
   useEffect(() => {
@@ -67,12 +66,6 @@ export default function MemberDashboard() {
         const data = await res.json()
         setMember(data.member)
         localStorage.setItem('memberData', JSON.stringify(data.member))
-
-        const statusRes = await fetch('/api/member/attendance')
-        if (statusRes.ok) {
-          const statusData = await statusRes.json()
-          setIsCheckedIn(!!statusData.checkedIn)
-        }
       } catch (e) {
         router.push('/member-login')
         return
@@ -151,8 +144,7 @@ export default function MemberDashboard() {
       }
 
       // Record attendance — identity comes from the member's own session cookie,
-      // so this always checks the logged-in member in or out, never another member.
-      // Toggles automatically: first scan of the visit checks in, the next checks out.
+      // so this always checks in the logged-in member, never another member.
       const res = await fetch('/api/member/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -160,10 +152,7 @@ export default function MemberDashboard() {
 
       const data = await res.json()
       if (res.ok) {
-        setIsCheckedIn(data.action === 'check_in')
-        setAttendanceMessage(
-          data.action === 'check_in' ? '✅ تم تسجيل حضورك بنجاح!' : '✅ تم تسجيل انصرافك بنجاح!'
-        )
+        setAttendanceMessage('✅ تم تسجيل حضورك بنجاح!')
       } else {
         setAttendanceMessage(data.error || 'فشل تسجيل الحضور')
       }
@@ -294,29 +283,16 @@ export default function MemberDashboard() {
 
         {/* Attendance Section — Member scans Gym's printed QR barcode */}
         <div className="glass-card p-6 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-cairo font-bold text-lg text-white">
-              {isCheckedIn ? 'تسجيل الانصراف' : 'تسجيل الحضور في الجيم'}
-            </h3>
-            {isCheckedIn && (
-              <span className="text-xs px-3 py-1 rounded-full bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/30">
-                داخل الجيم الآن
-              </span>
-            )}
-          </div>
+          <h3 className="font-cairo font-bold text-lg text-white">تسجيل الحضور في الجيم</h3>
 
           <div className="space-y-3">
             <button
               onClick={() => setShowCameraModal(true)}
               disabled={checkingIn}
-              className={`w-full py-3.5 text-white rounded-xl font-cairo font-bold transition-colors flex items-center justify-center gap-2 text-base shadow-lg ${
-                isCheckedIn
-                  ? 'bg-red-500 hover:bg-red-500/90 shadow-red-500/20'
-                  : 'bg-[#22C55E] hover:bg-[#22C55E]/90 shadow-[#22C55E]/20'
-              }`}
+              className="w-full py-3.5 bg-[#22C55E] text-white rounded-xl font-cairo font-bold hover:bg-[#22C55E]/90 transition-colors flex items-center justify-center gap-2 text-base shadow-lg shadow-[#22C55E]/20"
             >
               <Camera className="w-5 h-5" />
-              {isCheckedIn ? 'امسح الباركود لتسجيل الانصراف' : 'امسح باركود الجيم (كاميرا الموبايل)'}
+              امسح باركود الجيم (كاميرا الموبايل)
             </button>
 
             <button
@@ -325,7 +301,7 @@ export default function MemberDashboard() {
               className="w-full py-3 bg-app border border-app text-white rounded-xl font-cairo font-semibold hover:surface transition-colors flex items-center justify-center gap-2 text-sm"
             >
               <QrCode className="w-4 h-4 text-[#22C55E]" />
-              {isCheckedIn ? 'تسجيل انصراف بنقرة واحدة (داخل الجيم)' : 'تسجيل بنقرة واحدة (داخل الجيم)'}
+              تسجيل بنقرة واحدة (داخل الجيم)
             </button>
           </div>
 

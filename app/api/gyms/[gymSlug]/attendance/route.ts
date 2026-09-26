@@ -109,63 +109,6 @@ export async function POST(
   })
 }
 
-// PATCH /api/gyms/[gymSlug]/attendance - Check out member by barcode (staff-initiated)
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ gymSlug: string }> }
-) {
-  const { gymSlug } = await params
-  const ctxResult = await getGymContextApi(gymSlug)
-  if (!ctxResult.ok) {
-    return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
-  }
-  const { gym, userId } = ctxResult.ctx
-
-  const body = await request.json()
-  const { barcode } = body
-
-  if (!barcode?.trim()) {
-    return NextResponse.json({ error: 'الباركود مطلوب' }, { status: 400 })
-  }
-
-  const member = await prisma.member.findUnique({ where: { barcode: barcode.trim() } })
-
-  if (!member || member.gymId !== gym.id) {
-    return NextResponse.json({ error: 'الباركود غير صحيح' }, { status: 404 })
-  }
-
-  const openAttendance = await prisma.attendance.findFirst({
-    where: { memberId: member.id, gymId: gym.id, status: 'checked_in' },
-    orderBy: { checkInTime: 'desc' },
-  })
-
-  if (!openAttendance) {
-    return NextResponse.json({ error: 'لا يوجد تسجيل حضور مفتوح لهذا العضو' }, { status: 400 })
-  }
-
-  const attendance = await prisma.attendance.update({
-    where: { id: openAttendance.id },
-    data: { checkOutTime: new Date(), status: 'checked_out' },
-  })
-
-  await auditFromRequest(request, gym.id, userId, 'attendance.check_out', 'attendance', attendance.id, {
-    memberName: member.fullName,
-    memberNumber: member.memberNumber,
-    barcode: barcode,
-  })
-
-  return NextResponse.json({
-    success: true,
-    attendance,
-    member: {
-      id: member.id,
-      fullName: member.fullName,
-      memberNumber: member.memberNumber,
-      phone: member.phone,
-    },
-  })
-}
-
 // GET /api/gyms/[gymSlug]/attendance - Get attendance records
 export async function GET(
   request: Request,

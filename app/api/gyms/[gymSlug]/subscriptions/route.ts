@@ -34,7 +34,11 @@ export async function POST(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym, userId } = ctxResult.ctx
+  const { gym, userId, role } = ctxResult.ctx
+
+  if (role === 'cashier' || role === 'trainer') {
+    return NextResponse.json({ error: 'لا تملك صلاحية إنشاء اشتراك' }, { status: 403 })
+  }
 
   const body = await request.json()
   const { memberId, planId, startDate, discount, method, notes } = body
@@ -60,10 +64,20 @@ export async function POST(
   end.setDate(end.getDate() + plan.duration)
 
   const finalDiscount = discount || 0
+  if (finalDiscount < 0 || finalDiscount > plan.price) {
+    return NextResponse.json({ error: 'قيمة الخصم غير صحيحة' }, { status: 400 })
+  }
   const finalPrice = plan.price - finalDiscount
 
-  // Transaction: create subscription + payment
+  // Transaction: expire any other still-active subscription for this member (a member
+  // should only ever have one "active" row — every report/expiry query assumes that),
+  // then create the new subscription + payment.
   const result = await prisma.$transaction(async (tx) => {
+    await tx.subscription.updateMany({
+      where: { memberId, gymId: gym.id, status: 'active' },
+      data: { status: 'expired' },
+    })
+
     const subscription = await tx.subscription.create({
       data: {
         gymId: gym.id,

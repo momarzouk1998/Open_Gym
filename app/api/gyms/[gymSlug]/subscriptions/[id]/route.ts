@@ -13,7 +13,11 @@ export async function PATCH(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym, userId } = ctxResult.ctx
+  const { gym, userId, role } = ctxResult.ctx
+
+  if (role === 'cashier' || role === 'trainer') {
+    return NextResponse.json({ error: 'لا تملك صلاحية تعديل الاشتراك' }, { status: 403 })
+  }
 
   const body = await request.json()
   const { action } = body // 'freeze' | 'unfreeze' | 'cancel'

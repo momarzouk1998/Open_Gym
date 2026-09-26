@@ -6,6 +6,7 @@ import { auditFromRequest } from '@/lib/audit'
 import { generateBarcode } from '@/lib/barcode'
 import bcrypt from 'bcryptjs'
 import type { GenderType } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 // GET /api/gyms/[gymSlug]/members?search=&status=&page=
 export async function GET(
@@ -85,20 +86,36 @@ export async function POST(
   hashedPassword = await bcrypt.hash(passwordToUse, 12)
 
   const memberNumber = await generateMemberNumber(gym.id)
-  const barcode = generateBarcode()
 
-  const member = await prisma.member.create({
-    data: {
-      gymId: gym.id,
-      memberNumber,
-      barcode,
-      fullName: fullName.trim(),
-      phone: phone.trim(),
-      password: hashedPassword,
-      gender: (gender as GenderType) || null,
-      notes: notes || null,
-    },
-  })
+  // barcode is globally unique; generateBarcode() has a small chance of collision
+  // across concurrent signups, so retry with a fresh one instead of a raw 500.
+  let member
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      member = await prisma.member.create({
+        data: {
+          gymId: gym.id,
+          memberNumber,
+          barcode: generateBarcode(),
+          fullName: fullName.trim(),
+          phone: phone.trim(),
+          password: hashedPassword,
+          gender: (gender as GenderType) || null,
+          notes: notes || null,
+        },
+      })
+      break
+    } catch (err) {
+      const isBarcodeCollision =
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        (err.meta?.target as string[] | undefined)?.includes('barcode')
+      if (!isBarcodeCollision || attempt === 4) throw err
+    }
+  }
+  if (!member) {
+    return NextResponse.json({ error: 'تعذر إنشاء العضو، حاول مرة أخرى' }, { status: 500 })
+  }
 
   // Audit
   await auditFromRequest(request, gym.id, userId, 'member.create', 'member', member.id, {

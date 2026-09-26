@@ -34,7 +34,11 @@ export async function PATCH(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym } = ctxResult.ctx
+  const { gym, role } = ctxResult.ctx
+
+  if (role === 'cashier' || role === 'trainer') {
+    return NextResponse.json({ error: 'لا تملك صلاحية تعديل الموظفين' }, { status: 403 })
+  }
 
   const body = await request.json()
 
@@ -70,7 +74,11 @@ export async function DELETE(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym } = ctxResult.ctx
+  const { gym, role } = ctxResult.ctx
+
+  if (role === 'cashier' || role === 'trainer') {
+    return NextResponse.json({ error: 'لا تملك صلاحية حذف الموظفين' }, { status: 403 })
+  }
 
   const existing = await prisma.profile.findFirst({
     where: { id, gymId: gym.id, role: 'gym_manager' },
