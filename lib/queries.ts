@@ -258,6 +258,51 @@ export async function getExpiredSubscriptions(gymId: string) {
   })
 }
 
+// Active members (paying, not brand-new) who haven't checked in for `inactivityDays`.
+// This is the #1 preventable-churn signal per gym-retention research: members who stop
+// showing up for 10-14+ days despite an active subscription are at serious risk of not
+// renewing, and nobody proactively reaches out to them until it's too late.
+export async function getAtRiskMembers(gymId: string, inactivityDays = 14) {
+  const now = new Date()
+  const cutoff = new Date(now.getTime() - inactivityDays * 24 * 60 * 60 * 1000)
+
+  const members = await prisma.member.findMany({
+    where: {
+      gymId,
+      isActive: true,
+      createdAt: { lt: cutoff }, // exclude members too new to have a visit history yet
+      subscriptions: { some: { status: 'active', endDate: { gte: now } } },
+    },
+    select: {
+      id: true,
+      fullName: true,
+      phone: true,
+      attendance: {
+        orderBy: { checkInTime: 'desc' },
+        take: 1,
+        select: { checkInTime: true },
+      },
+    },
+    take: 300,
+  })
+
+  return members
+    .filter((m) => !m.attendance[0] || m.attendance[0].checkInTime < cutoff)
+    .map((m) => ({
+      id: m.id,
+      fullName: m.fullName,
+      phone: m.phone,
+      lastVisit: m.attendance[0]?.checkInTime ?? null,
+    }))
+    .sort((a, b) => {
+      if (!a.lastVisit && !b.lastVisit) return 0
+      if (!a.lastVisit) return -1
+      if (!b.lastVisit) return 1
+      return a.lastVisit.getTime() - b.lastVisit.getTime()
+    })
+    .slice(0, 100)
+}
+
 // Admin (super_admin) variants — cross-gym, includes gym name.
 export async function getExpiringSubscriptionsAdmin(days = 7) {
   const now = new Date()
