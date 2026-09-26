@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getGymContextApi } from '@/lib/gym-context'
-import { getExpiringSubscriptions, getExpiredSubscriptions } from '@/lib/queries'
+import { getExpiringSubscriptions, getExpiredSubscriptions, getAtRiskMembers } from '@/lib/queries'
 import { prisma } from '@/lib/prisma'
 
 // GET /api/gyms/[gymSlug]/expiring
@@ -31,10 +31,11 @@ export async function GET(
   const { searchParams } = new URL(request.url)
   const days = parseInt(searchParams.get('days') || '7')
 
-  const [expiring, expired] = await Promise.all([
+  const [expiring, expired, atRisk] = await Promise.all([
     getExpiringSubscriptions(gym.id, days),
     getExpiredSubscriptions(gym.id),
+    getAtRiskMembers(gym.id),
   ])
 
-  return NextResponse.json({ expiring, expired })
+  return NextResponse.json({ expiring, expired, atRisk })
 }

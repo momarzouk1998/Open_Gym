@@ -53,18 +53,26 @@ export default function MemberDashboard() {
   const scannerRef = useRef<any>(null)
 
   useEffect(() => {
-    const memberData = localStorage.getItem('memberData')
-    if (!memberData) {
-      router.push('/member-login')
-      return
+    // Fetch fresh member data from the server (source of truth is the signed
+    // session cookie set at login, not whatever was cached in localStorage).
+    const loadMember = async () => {
+      try {
+        const res = await fetch('/api/member/me')
+        if (!res.ok) {
+          localStorage.removeItem('memberData')
+          router.push('/member-login')
+          return
+        }
+        const data = await res.json()
+        setMember(data.member)
+        localStorage.setItem('memberData', JSON.stringify(data.member))
+      } catch (e) {
+        router.push('/member-login')
+        return
+      }
+      setLoading(false)
     }
-    try {
-      setMember(JSON.parse(memberData))
-    } catch (e) {
-      router.push('/member-login')
-      return
-    }
-    setLoading(false)
+    loadMember()
   }, [router])
 
   // Camera QR Scanner instance for reading the Gym's wall QR code
@@ -100,7 +108,12 @@ export default function MemberDashboard() {
     }
   }, [showCameraModal])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/member/logout', { method: 'POST' })
+    } catch (e) {
+      // Ignore — clear local state regardless
+    }
     localStorage.removeItem('memberData')
     router.push('/member-login')
   }
@@ -120,8 +133,8 @@ export default function MemberDashboard() {
 
       // Verify matching gym barcode or slug
       if (
-        member.gym.gymBarcode && 
-        gymSlugOrBarcode !== member.gym.gymBarcode && 
+        member.gym.gymBarcode &&
+        gymSlugOrBarcode !== member.gym.gymBarcode &&
         gymSlugOrBarcode !== member.gym.slug &&
         !scannedText.includes(member.gym.slug)
       ) {
@@ -130,13 +143,11 @@ export default function MemberDashboard() {
         return
       }
 
-      // Record attendance
-      const res = await fetch(`/api/gyms/${encodeURIComponent(member.gym.slug)}/attendance`, {
+      // Record attendance — identity comes from the member's own session cookie,
+      // so this always checks in the logged-in member, never another member.
+      const res = await fetch('/api/member/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          barcode: member.barcode,
-        }),
       })
 
       const data = await res.json()
@@ -181,7 +192,6 @@ export default function MemberDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          memberId: member.id,
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),
@@ -274,7 +284,7 @@ export default function MemberDashboard() {
         {/* Attendance Section — Member scans Gym's printed QR barcode */}
         <div className="glass-card p-6 rounded-2xl space-y-4">
           <h3 className="font-cairo font-bold text-lg text-white">تسجيل الحضور في الجيم</h3>
-          
+
           <div className="space-y-3">
             <button
               onClick={() => setShowCameraModal(true)}

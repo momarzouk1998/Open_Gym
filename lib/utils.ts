@@ -60,6 +60,11 @@ export function renewalReminderMessage(
   return `أهلاً ${memberName} 👋\nعنوانك في الجيم: خطة "${planName}" بتاعك ${endDate}.\nتفضّل تجدّد اشتراكك عشان تكمل تمارينك؟ 💪`
 }
 
+/** Re-engagement message for members who haven't checked in for a while despite an active subscription. */
+export function reEngagementMessage(memberName: string, gymName: string): string {
+  return `أهلاً ${memberName} 👋\nمعدّيناش شفناك في ${gymName} من فترة، مشتاقينلك في الجيم!\nيلا نظّم معاد ونشوفك قريب 💪`
+}
+
 /**
  * Converts an array of objects to a CSV string and triggers a browser download.
  * No external dependencies — pure browser APIs.

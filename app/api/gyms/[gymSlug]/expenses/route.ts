@@ -35,7 +35,11 @@ export async function POST(
   if (!ctxResult.ok) {
     return NextResponse.json({ error: ctxResult.error }, { status: ctxResult.status })
   }
-  const { gym, userId } = ctxResult.ctx
+  const { gym, userId, role } = ctxResult.ctx
+
+  if (role === 'cashier' || role === 'trainer') {
+    return NextResponse.json({ error: 'لا تملك صلاحية إضافة مصروفات' }, { status: 403 })
+  }
 
   const body = await request.json()
   const { category, amount, description, date, branchId } = body

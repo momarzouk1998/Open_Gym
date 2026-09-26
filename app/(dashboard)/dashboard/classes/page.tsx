@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useGymStore } from '@/store/gym-store'
 import { formatCurrency } from '@/lib/utils'
-import { Dumbbell, Plus, Search, Loader2, ChevronRight, ChevronLeft, Pencil, Trash2, X, Clock, Users, Tag } from 'lucide-react'
+import { Dumbbell, Plus, Search, Loader2, ChevronRight, ChevronLeft, Pencil, Trash2, X, Clock, Users, Tag, UserPlus, Phone } from 'lucide-react'
 
 interface ClassItem {
   id: string
@@ -31,6 +31,12 @@ interface ClassesResponse {
   stats: { activeCount: number }
 }
 interface Option { id: string; name: string; fullName?: string | null }
+interface BookingItem {
+  id: string
+  bookedAt: string
+  attended: boolean
+  member: { id: string; fullName: string; phone: string | null; memberNumber: string | null }
+}
 
 // 0=السبت ... 6=الجمعة (نظام أيام الأسبوع العربي)
 const DAYS = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة']
@@ -78,6 +84,14 @@ export default function ClassesPage() {
   })
   const [saving, setSaving] = useState(false)
 
+  const [bookingsClass, setBookingsClass] = useState<ClassItem | null>(null)
+  const [bookings, setBookings] = useState<BookingItem[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  const [memberSearch, setMemberSearch] = useState('')
+  const [memberResults, setMemberResults] = useState<Option[]>([])
+  const [addingBooking, setAddingBooking] = useState(false)
+  const [bookingError, setBookingError] = useState('')
+
   const fetchClasses = useCallback(async (p = 1, s = '', a: 'all' | 'active' | 'inactive' = 'all') => {
     if (!gymSlug) return
     setLoading(true)
@@ -119,6 +133,71 @@ export default function ClassesPage() {
     const timer = setTimeout(() => fetchClasses(1, search, activeFilter), 350)
     return () => clearTimeout(timer)
   }, [search, activeFilter, gymSlug, fetchClasses])
+
+  const fetchBookings = useCallback(async (classId: string) => {
+    if (!gymSlug) return
+    setBookingsLoading(true)
+    try {
+      const res = await fetch(`/api/gyms/${gymSlug}/classes/${classId}/bookings`)
+      if (!res.ok) throw new Error()
+      const data = await res.json()
+      setBookings(data.bookings || [])
+    } catch (err) { console.error(err) } finally { setBookingsLoading(false) }
+  }, [gymSlug])
+
+  const openBookings = (c: ClassItem) => {
+    setBookingsClass(c)
+    setMemberSearch('')
+    setMemberResults([])
+    setBookingError('')
+    fetchBookings(c.id)
+  }
+
+  useEffect(() => {
+    if (!bookingsClass || !gymSlug || !memberSearch.trim()) return
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/gyms/${gymSlug}/members?search=${encodeURIComponent(memberSearch)}&limit=8`)
+        if (!res.ok) return
+        const data = await res.json()
+        setMemberResults((data.members || []).map((m: { id: string; fullName: string }) => ({ id: m.id, name: m.fullName })))
+      } catch { /* ignore */ }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [memberSearch, bookingsClass, gymSlug])
+
+  const handleAddBooking = async (memberId: string) => {
+    if (!gymSlug || !bookingsClass) return
+    setAddingBooking(true)
+    setBookingError('')
+    try {
+      const res = await fetch(`/api/gyms/${gymSlug}/classes/${bookingsClass.id}/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ memberId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'فشل الحجز')
+      setMemberSearch('')
+      setMemberResults([])
+      await fetchBookings(bookingsClass.id)
+      fetchClasses(page, search, activeFilter)
+    } catch (err) {
+      setBookingError(err instanceof Error ? err.message : 'فشل الحجز')
+    } finally {
+      setAddingBooking(false)
+    }
+  }
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (!gymSlug || !bookingsClass) return
+    try {
+      const res = await fetch(`/api/gyms/${gymSlug}/classes/${bookingsClass.id}/bookings/${bookingId}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error()
+      await fetchBookings(bookingsClass.id)
+      fetchClasses(page, search, activeFilter)
+    } catch (err) { console.error(err) }
+  }
 
   const openAdd = () => {
     setEditing(null)
@@ -284,7 +363,15 @@ export default function ClassesPage() {
                       <span className="text-xs text-faint">{daysLabel(c.dayOfWeek)}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-muted-c">{c._count.bookings}</td>
+                  <td className="p-4 text-sm">
+                    <button
+                      onClick={() => openBookings(c)}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:surface transition-colors text-[#22C55E] font-medium"
+                      title="عرض/إدارة الحجوزات"
+                    >
+                      {c._count.bookings} / {c.capacity}
+                    </button>
+                  </td>
                   <td className="p-4">
                     {c.isActive ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#22C55E]/10 text-[#22C55E] text-xs font-semibold">نشط</span>
@@ -382,6 +469,82 @@ export default function ClassesPage() {
             <div className="flex gap-3 pt-2 sticky bottom-0 bg-app">
               <button onClick={handleSave} disabled={saving || !form.name.trim()} className="flex-1 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors disabled:opacity-50">{saving ? 'جاري الحفظ...' : 'حفظ'}</button>
               <button onClick={() => setModalOpen(false)} className="flex-1 py-2.5 border border-app text-strong rounded-xl text-sm font-semibold hover:surface transition-colors">إلغاء</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bookingsClass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setBookingsClass(null)} />
+          <div className="relative bg-app border border-app rounded-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between sticky top-0 bg-app pb-2">
+              <div>
+                <h3 className="font-cairo font-bold text-lg">حجوزات: {bookingsClass.name}</h3>
+                <p className="text-xs text-faint mt-0.5">{bookings.length} / {bookingsClass.capacity} محجوز</p>
+              </div>
+              <button onClick={() => setBookingsClass(null)} className="text-faint hover:text-strong"><X className="w-5 h-5" /></button>
+            </div>
+
+            {/* Add member */}
+            <div className="space-y-2">
+              <label className="block text-sm text-faint">إضافة عضو للكلاس</label>
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" />
+                <input
+                  type="text"
+                  value={memberSearch}
+                  onChange={(e) => {
+                    setMemberSearch(e.target.value)
+                    if (!e.target.value.trim()) setMemberResults([])
+                  }}
+                  placeholder="ابحث بالاسم أو التليفون..."
+                  disabled={bookings.length >= bookingsClass.capacity}
+                  className="w-full bg-app border border-app rounded-xl py-2.5 pr-9 pl-3 text-strong placeholder:text-faint focus:outline-none focus:border-[#22C55E]/50 disabled:opacity-50"
+                />
+              </div>
+              {bookings.length >= bookingsClass.capacity && (
+                <p className="text-xs text-[#F59E0B]">الكلاس مكتمل العدد</p>
+              )}
+              {bookingError && <p className="text-xs text-[#EF4444]">{bookingError}</p>}
+              {memberResults.length > 0 && (
+                <div className="border border-app rounded-xl overflow-hidden divide-y divide-app">
+                  {memberResults.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => handleAddBooking(m.id)}
+                      disabled={addingBooking}
+                      className="w-full flex items-center justify-between p-3 hover:surface transition-colors text-sm disabled:opacity-50"
+                    >
+                      <span>{m.name}</span>
+                      <UserPlus className="w-4 h-4 text-[#22C55E]" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Booked members list */}
+            <div className="space-y-2">
+              {bookingsLoading ? (
+                <div className="py-8 text-center"><Loader2 className="w-6 h-6 mx-auto animate-spin text-[#22C55E]" /></div>
+              ) : bookings.length === 0 ? (
+                <div className="py-8 text-center text-faint text-sm">مفيش أعضاء محجوزين في الكلاس ده لسه</div>
+              ) : (
+                bookings.map((b) => (
+                  <div key={b.id} className="flex items-center justify-between p-3 rounded-xl border border-app">
+                    <div>
+                      <p className="text-sm font-medium">{b.member.fullName}</p>
+                      {b.member.phone && (
+                        <p className="text-xs text-faint flex items-center gap-1" dir="ltr"><Phone className="w-3 h-3" />{b.member.phone}</p>
+                      )}
+                    </div>
+                    <button onClick={() => handleCancelBooking(b.id)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#EF4444]" title="إلغاء الحجز">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
