@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { createMemberSessionToken, memberSessionCookieOptions, MEMBER_SESSION_COOKIE } from '@/lib/member-auth'
 
 export async function POST(request: Request) {
   try {
@@ -23,11 +25,23 @@ export async function POST(request: Request) {
       )
     }
 
+    // Rate limit brute-force attempts by IP and by phone number
+    const ip = getClientIp(request)
+    const ipLimit = rateLimit(`member-login:ip:${ip}`, { limit: 20, windowSecs: 900 })
+    const phoneLimit = rateLimit(`member-login:phone:${phone.trim()}`, { limit: 10, windowSecs: 900 })
+    if (!ipLimit.allowed || !phoneLimit.allowed) {
+      const retryAfter = Math.max(ipLimit.retryAfter, phoneLimit.retryAfter)
+      return NextResponse.json(
+        { error: `محاولات كثيرة. حاول بعد ${retryAfter} ثانية.` },
+        { status: 429 }
+      )
+    }
+
     // Find all active members by phone (across all gyms)
     const members = await prisma.member.findMany({
-      where: { 
+      where: {
         phone: phone.trim(),
-        isActive: true 
+        isActive: true
       },
       include: {
         gym: {
@@ -92,10 +106,15 @@ export async function POST(request: Request) {
     // Return member data (without password)
     const { password: _, ...memberData } = matchedMember
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       member: memberData,
     })
+
+    const token = await createMemberSessionToken(matchedMember.id, matchedMember.gymId)
+    response.cookies.set(MEMBER_SESSION_COOKIE, token, memberSessionCookieOptions())
+
+    return response
   } catch (error) {
     console.error('Member login error:', error)
     return NextResponse.json(

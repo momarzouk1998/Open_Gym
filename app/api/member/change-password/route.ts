@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { getMemberSessionFromRequest } from '@/lib/member-auth'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { memberId, currentPassword, newPassword } = body
+    const session = await getMemberSessionFromRequest(request)
+    if (!session) {
+      return NextResponse.json({ error: 'غير مسجّل الدخول' }, { status: 401 })
+    }
 
-    if (!memberId || !currentPassword || !newPassword) {
+    const body = await request.json()
+    const { currentPassword, newPassword } = body
+
+    if (!currentPassword || !newPassword) {
       return NextResponse.json(
         { error: 'جميع الحقول مطلوبة' },
         { status: 400 }
@@ -21,9 +27,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Find member
+    // Find member — identity comes from the verified session, never from the request body.
     const member = await prisma.member.findUnique({
-      where: { id: memberId },
+      where: { id: session.memberId },
     })
 
     if (!member) {
@@ -55,7 +61,7 @@ export async function POST(request: Request) {
 
     // Update password
     await prisma.member.update({
-      where: { id: memberId },
+      where: { id: member.id },
       data: { password: hashedPassword },
     })
 

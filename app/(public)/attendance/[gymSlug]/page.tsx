@@ -62,13 +62,11 @@ export default function AttendancePage() {
       localStorage.setItem('memberData', JSON.stringify(loginData.member))
       setGymName(loginData.member.gym.name)
 
-      // Record attendance
-      const attendanceRes = await fetch(`/api/gyms/${encodeURIComponent(gymSlug)}/attendance`, {
+      // Record attendance — the login call above already set the member's session
+      // cookie, so this always acts on the logged-in member (never a client-supplied one).
+      const attendanceRes = await fetch('/api/member/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          barcode: loginData.member.barcode,
-        }),
       })
 
       const attendanceData = await attendanceRes.json()

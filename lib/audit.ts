@@ -35,6 +35,7 @@ export type AuditAction =
   | 'gym.update'
   | 'gym.plan_change'
   | 'attendance.check_in'
+  | 'attendance.check_out'
   | 'gym.barcode_regenerate'
   | 'member.password_reset'
 

@@ -7,6 +7,8 @@ import { Camera, X, CheckCircle2, AlertCircle, Clock, User, QrCode } from 'lucid
 interface AttendanceRecord {
   id: string
   checkInTime: string
+  checkOutTime: string | null
+  status: 'checked_in' | 'checked_out'
   member: {
     id: string
     fullName: string
@@ -29,6 +31,7 @@ export default function CheckInPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [recentAttendance, setRecentAttendance] = useState<AttendanceRecord[]>([])
+  const [mode, setMode] = useState<'check_in' | 'check_out'>('check_in')
 
   // Load recent attendance
   useEffect(() => {
@@ -82,7 +85,7 @@ export default function CheckInPage() {
 
     try {
       const res = await fetch(`/api/gyms/${gymSlug}/attendance`, {
-        method: 'POST',
+        method: mode === 'check_in' ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ barcode: barcode.trim() }),
       })
@@ -90,13 +93,17 @@ export default function CheckInPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'فشل تسجيل الحضور')
+        throw new Error(data.error || (mode === 'check_in' ? 'فشل تسجيل الحضور' : 'فشل تسجيل الانصراف'))
       }
 
-      setSuccess(`تم تسجيل حضور ${data.member.fullName} بنجاح!`)
+      setSuccess(
+        mode === 'check_in'
+          ? `تم تسجيل حضور ${data.member.fullName} بنجاح!`
+          : `تم تسجيل انصراف ${data.member.fullName} بنجاح!`
+      )
       setManualInput('')
       await loadRecentAttendance()
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
@@ -117,8 +124,28 @@ export default function CheckInPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h2 className="font-cairo font-bold text-2xl">تسجيل الحضور</h2>
+        <h2 className="font-cairo font-bold text-2xl">تسجيل الحضور والانصراف</h2>
         <p className="text-sm text-muted-c">امسح باركود العضو أو أدخله يدوياً</p>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="flex gap-2 p-1 bg-app rounded-xl border border-app w-fit">
+        <button
+          onClick={() => setMode('check_in')}
+          className={`px-5 py-2 rounded-lg font-cairo font-semibold text-sm transition-colors ${
+            mode === 'check_in' ? 'bg-[#22C55E] text-white' : 'text-muted-c hover:text-strong'
+          }`}
+        >
+          تسجيل حضور
+        </button>
+        <button
+          onClick={() => setMode('check_out')}
+          className={`px-5 py-2 rounded-lg font-cairo font-semibold text-sm transition-colors ${
+            mode === 'check_out' ? 'bg-red-500 text-white' : 'text-muted-c hover:text-strong'
+          }`}
+        >
+          تسجيل انصراف
+        </button>
       </div>
 
       {error && (
@@ -236,12 +263,32 @@ export default function CheckInPage() {
                   </div>
                 </div>
                 <div className="text-left">
-                  <p className="text-sm text-soft">
-                    {new Date(record.checkInTime).toLocaleTimeString('ar-EG', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+                  <div className="flex items-center gap-2 justify-end">
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded-full ${
+                        record.status === 'checked_in'
+                          ? 'bg-[#22C55E]/10 text-[#22C55E]'
+                          : 'bg-red-500/10 text-red-400'
+                      }`}
+                    >
+                      {record.status === 'checked_in' ? 'داخل الجيم' : 'انصرف'}
+                    </span>
+                    <p className="text-sm text-soft">
+                      {new Date(record.checkInTime).toLocaleTimeString('ar-EG', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                      {record.checkOutTime && (
+                        <>
+                          {' → '}
+                          {new Date(record.checkOutTime).toLocaleTimeString('ar-EG', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </>
+                      )}
+                    </p>
+                  </div>
                   <p className="text-xs text-muted-c">
                     {record.member?.subscriptions?.[0]?.endDate ? (
                       `ينتهي: ${new Date(record.member.subscriptions[0].endDate).toLocaleDateString('ar-EG')}`
