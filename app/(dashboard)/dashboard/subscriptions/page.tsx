@@ -54,7 +54,12 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 }
 
 export default function SubscriptionsPage() {
-  const { gym } = useGymStore()
+  const { gym, user } = useGymStore()
+  // Selling/renewing a membership is front-desk work (cashiers do it); freezing/
+  // cancelling an existing one is a manager-level decision — matches the API's
+  // POST (create/renew, cashier allowed) vs PATCH (owner/manager only) split.
+  const canSell = user?.role !== 'trainer'
+  const canManage = user?.role === 'gym_owner' || user?.role === 'gym_manager'
   const gymSlug = gym?.slug
 
   const [subs, setSubs] = useState<Subscription[]>([])
@@ -318,42 +323,48 @@ export default function SubscriptionsPage() {
                       <td className="p-4">
                         <div className="flex items-center gap-1">
                           {/* Renew — available for every status (active, expired, frozen) */}
-                          <button
-                            onClick={() => openRenew(sub)}
-                            title="تجديد"
-                            className="p-1.5 rounded-lg text-[#22C55E] hover:bg-[#22C55E]/10"
-                          >
-                            <RefreshCw className="w-4 h-4" />
-                          </button>
-                          {sub.status === 'active' && (
+                          {canSell && (
                             <button
-                              onClick={() => handleAction(sub.id, 'freeze')}
-                              disabled={actionLoading === sub.id}
-                              title="تجميد"
-                              className="p-1.5 rounded-lg text-[#3B82F6] hover:bg-[#3B82F6]/10 disabled:opacity-50"
+                              onClick={() => openRenew(sub)}
+                              title="تجديد"
+                              className="p-1.5 rounded-lg text-[#22C55E] hover:bg-[#22C55E]/10"
                             >
-                              <Snowflake className="w-4 h-4" />
+                              <RefreshCw className="w-4 h-4" />
                             </button>
                           )}
-                          {sub.status === 'frozen' && (
-                            <button
-                              onClick={() => handleAction(sub.id, 'unfreeze')}
-                              disabled={actionLoading === sub.id}
-                              title="إلغاء التجميد"
-                              className="p-1.5 rounded-lg text-[#22C55E] hover:bg-[#22C55E]/10 disabled:opacity-50"
-                            >
-                              <Play className="w-4 h-4" />
-                            </button>
-                          )}
-                          {(sub.status === 'active' || sub.status === 'frozen') && (
-                            <button
-                              onClick={() => handleAction(sub.id, 'cancel')}
-                              disabled={actionLoading === sub.id}
-                              title="إلغاء"
-                              className="p-1.5 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 disabled:opacity-50"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
+                          {canManage && (
+                            <>
+                            {sub.status === 'active' && (
+                              <button
+                                onClick={() => handleAction(sub.id, 'freeze')}
+                                disabled={actionLoading === sub.id}
+                                title="تجميد"
+                                className="p-1.5 rounded-lg text-[#3B82F6] hover:bg-[#3B82F6]/10 disabled:opacity-50"
+                              >
+                                <Snowflake className="w-4 h-4" />
+                              </button>
+                            )}
+                            {sub.status === 'frozen' && (
+                              <button
+                                onClick={() => handleAction(sub.id, 'unfreeze')}
+                                disabled={actionLoading === sub.id}
+                                title="إلغاء التجميد"
+                                className="p-1.5 rounded-lg text-[#22C55E] hover:bg-[#22C55E]/10 disabled:opacity-50"
+                              >
+                                <Play className="w-4 h-4" />
+                              </button>
+                            )}
+                            {(sub.status === 'active' || sub.status === 'frozen') && (
+                              <button
+                                onClick={() => handleAction(sub.id, 'cancel')}
+                                disabled={actionLoading === sub.id}
+                                title="إلغاء"
+                                className="p-1.5 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 disabled:opacity-50"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            </>
                           )}
                         </div>
                       </td>

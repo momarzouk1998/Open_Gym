@@ -80,7 +80,8 @@ const methodLabels: Record<string, string> = {
 export default function MemberDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
-  const { gym, initialized } = useGymStore()
+  const { gym, user, initialized } = useGymStore()
+  const canResetPassword = user?.role !== 'cashier' && user?.role !== 'trainer'
   const gymSlug = gym?.slug
 
   const [member, setMember] = useState<MemberDetail | null>(null)
@@ -253,23 +254,25 @@ export default function MemberDetailPage() {
                 واتساب
               </a>
             )}
-            <button
-              onClick={handleResetPassword}
-              disabled={resettingPassword}
-              className="inline-flex items-center gap-2 px-4 py-2 border border-app rounded-xl text-sm font-medium hover:surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {resettingPassword ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  جاري...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 text-[#22C55E]" />
-                  إعادة كلمة المرور
-                </>
-              )}
-            </button>
+            {canResetPassword && (
+              <button
+                onClick={handleResetPassword}
+                disabled={resettingPassword}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-app rounded-xl text-sm font-medium hover:surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {resettingPassword ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    جاري...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 text-[#22C55E]" />
+                    إعادة كلمة المرور
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={() =>
                 router.push(`/dashboard/subscriptions?member=${member.id}`)

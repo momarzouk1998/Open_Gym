@@ -36,7 +36,10 @@ export async function POST(
   }
   const { gym, userId, role } = ctxResult.ctx
 
-  if (role === 'cashier' || role === 'trainer') {
+  // Selling/renewing a membership is core front-desk cashier work (it's the same flow
+  // as registering a new member), so only trainers are blocked here. Modifying an
+  // existing subscription (freeze/unfreeze/cancel, in [id]/route.ts) stays owner/manager-only.
+  if (role === 'trainer') {
     return NextResponse.json({ error: 'لا تملك صلاحية إنشاء اشتراك' }, { status: 403 })
   }
 

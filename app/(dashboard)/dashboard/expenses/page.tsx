@@ -37,7 +37,8 @@ interface ExpensesResponse {
 const CATEGORIES = ['إيجار', 'مرتبات', 'كهرباء', 'مياه', 'صيانة', 'معدات', 'تسويق', 'أخرى']
 
 export default function ExpensesPage() {
-  const { gym } = useGymStore()
+  const { gym, user } = useGymStore()
+  const canManage = user?.role === 'gym_owner' || user?.role === 'gym_manager'
   const gymSlug = gym?.slug
 
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -152,13 +153,15 @@ export default function ExpensesPage() {
           <h2 className="font-cairo font-bold text-2xl">المصروفات</h2>
           <p className="text-sm text-muted-c">إجمالي المصروفات: {total}</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة مصروف
-        </button>
+        {canManage && (
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة مصروف
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -226,13 +229,15 @@ export default function ExpensesPage() {
                     <Receipt className="w-16 h-16 mx-auto mb-4 opacity-20" />
                     <p className="text-lg mb-1">مفيش مصروفات بعد</p>
                     <p className="text-sm">ابدأ بتسجيل أول مصروف في جيمك</p>
-                    <button
-                      onClick={openAdd}
-                      className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      إضافة أول مصروف
-                    </button>
+                    {canManage && (
+                      <button
+                        onClick={openAdd}
+                        className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors"
+                      >
+                        <Plus className="w-4 h-4" />
+                        إضافة أول مصروف
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -247,14 +252,16 @@ export default function ExpensesPage() {
                     <td className="p-4 text-sm text-muted-c">{exp.description || '—'}</td>
                     <td className="p-4 text-sm text-muted-c">{formatDate(exp.date)}</td>
                     <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openEdit(exp)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#22C55E]">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => handleDelete(exp.id)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#EF4444]">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {canManage && (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => openEdit(exp)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#22C55E]">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleDelete(exp.id)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#EF4444]">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))

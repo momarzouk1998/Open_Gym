@@ -10,8 +10,9 @@ interface StaffResponse { staff: StaffMember[]; total: number; page: number; pag
 interface BranchOption { id: string; name: string }
 
 export default function StaffPage() {
-  const { gym } = useGymStore()
+  const { gym, user } = useGymStore()
   const gymSlug = gym?.slug
+  const canManage = user?.role === 'gym_owner' || user?.role === 'gym_manager'
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -96,9 +97,11 @@ export default function StaffPage() {
           <h2 className="font-cairo font-bold text-2xl">الموظفون</h2>
           <p className="text-sm text-muted-c">إجمالي الموظفين: {total}</p>
         </div>
-        <button onClick={openAdd} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors">
-          <Plus className="w-4 h-4" /> إضافة موظف
-        </button>
+        {canManage && (
+          <button onClick={openAdd} className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors">
+            <Plus className="w-4 h-4" /> إضافة موظف
+          </button>
+        )}
       </div>
 
       <div className="glass-card p-4 rounded-2xl">
@@ -128,7 +131,9 @@ export default function StaffPage() {
                   <Users className="w-16 h-16 mx-auto mb-4 opacity-20" />
                   <p className="text-lg mb-1">مفيش موظفين بعد</p>
                   <p className="text-sm">ابدأ بإضافة أول موظف في جيمك</p>
-                  <button onClick={openAdd} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors"><Plus className="w-4 h-4" /> إضافة أول موظف</button>
+                  {canManage && (
+                    <button onClick={openAdd} className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 bg-[#22C55E] text-white rounded-xl text-sm font-semibold hover:bg-[#16A34A] transition-colors"><Plus className="w-4 h-4" /> إضافة أول موظف</button>
+                  )}
                 </td></tr>
               ) : staff.map((m) => (
                 <tr key={m.id} className="border-t border-app hover:surface transition-colors">
@@ -141,10 +146,12 @@ export default function StaffPage() {
                   <td className="p-4 text-sm text-muted-c">{m.branchId ? branchMap[m.branchId] || '—' : '—'}</td>
                   <td className="p-4 text-sm text-muted-c">{formatDate(m.createdAt)}</td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#22C55E]"><Pencil className="w-4 h-4" /></button>
-                      <button onClick={() => handleDelete(m.id)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#EF4444]"><Trash2 className="w-4 h-4" /></button>
-                    </div>
+                    {canManage && (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => openEdit(m)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#22C55E]"><Pencil className="w-4 h-4" /></button>
+                        <button onClick={() => handleDelete(m.id)} className="p-1.5 rounded-lg hover:surface transition-colors text-faint hover:text-[#EF4444]"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
